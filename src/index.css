@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+/* Specificity is key, add more specificity to target the inner elements of ReactSelect */
+.job-title-select .react-select__control {
+  border: 1px solid #000 !important;
+  border-radius: 0.375rem !important;
+}
+
+.job-title-select .react-select__placeholder {
+  font-size: 1rem !important; /* Adjust font size */
+}
+
+.job-title-select .react-select__single-value {
+  font-size: 1rem !important; /* Adjust font size */
+}
