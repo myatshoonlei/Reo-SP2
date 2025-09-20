@@ -1,14 +1,42 @@
-const CardTypeModal = ({ onClose, onSelectTeam, onSelectMyself }) => {
+import { useNavigate } from "react-router-dom";
+
+const CardTypeModal = () => {
+  const navigate = useNavigate();
+
+  const handleClose = () => {
+    navigate("/home");
+  };
+
+  const handleSelectMyself = () => {
+    localStorage.removeItem("personal_card_id");
+    navigate("/create/personal-info", { 
+      state: { 
+        cardType: "Myself",
+        comingFromCardType: true 
+      } 
+    });
+  };
+
+  const handleSelectTeam = () => {
+    localStorage.removeItem("team_card_id");
+    navigate("/create/team-info", { 
+      state: { 
+        cardType: "Team",
+        comingFromCardType: true 
+      } 
+    });
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex justify-center items-center bg-white/30 backdrop-blur-sm">
-      <div className="bg-white rounded-xl p-6 shadow-lg max-w-md w-full">
-        <h2 className="text-center text-xl font-bold mb-4 text-[#0b2447]">
-          Who is this card for ?
+    <div className="fixed inset-0 bg-gray bg-opacity-60 flex justify-center items-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <h2 className="text-xl font-semibold mb-4 text-center">
+          Who is this card for?
         </h2>
 
         <div className="grid grid-cols-2 gap-4">
           <div
-            onClick={onSelectMyself}
+            onClick={handleSelectMyself}
             className="border border-gray-300 rounded-lg p-4 text-center hover:bg-[#f0f8ff] hover:shadow-md cursor-pointer transition"
           >
             <p className="text-[#0b2447] font-semibold mb-2">Personal</p>
@@ -18,7 +46,7 @@ const CardTypeModal = ({ onClose, onSelectTeam, onSelectMyself }) => {
           </div>
 
           <div
-            onClick={onSelectTeam}
+            onClick={handleSelectTeam}
             className="border border-gray-300 rounded-lg p-4 text-center hover:bg-[#f0f8ff] hover:shadow-md cursor-pointer transition"
           >
             <p className="text-[#0b2447] font-semibold mb-2">My Team</p>
@@ -30,7 +58,7 @@ const CardTypeModal = ({ onClose, onSelectTeam, onSelectMyself }) => {
 
         <div className="mt-6 text-center">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="px-4 py-2 text-sm rounded-md bg-gray-200 text-gray-700"
           >
             Close

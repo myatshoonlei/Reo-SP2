@@ -1,63 +1,134 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import ColorThief from "colorthief";
 import { SketchPicker } from "react-color";
-
 
 let persistedPrimaryColor = null;
 let persistedPrimaryCustomColor = { r: 0, g: 0, b: 0, a: 1 };
 
-const PrimaryColorModal = ({ onClose, onBack, onNext, cardId }) => {
+const PrimaryColorModal = ({ onClose, onBack, onNext }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { cardId, cardType, teamId, croppedLogo } = location.state || {};
+
   const [colors, setColors] = useState([]);
   const imgRef = useRef(null);
   const [showPicker, setShowPicker] = useState(false);
   const [customColor, setCustomColor] = useState(persistedPrimaryCustomColor);
   const [selectedColor, setSelectedColor] = useState(persistedPrimaryColor);
 
+  // after hooks
+const getEffectiveCardId = () => {
+  if (cardId) return cardId;
+  const stored = localStorage.getItem("personal_card_id");
+  return stored && stored !== "null" && stored !== "undefined" ? Number(stored) : null;
+};
+const getEffectiveTeamId = () => {
+  if (teamId) return teamId;
+  const stored = localStorage.getItem("team_id");
+  return stored && stored !== "null" && stored !== "undefined" ? Number(stored) : null;
+};
+const effectiveCardId = getEffectiveCardId();
+const effectiveTeamId = getEffectiveTeamId();
+
+
   useEffect(() => {
+  // 1) Restore palette & selection quickly
+  const savedPalette = localStorage.getItem("primaryPalette");
+  if (savedPalette) setColors(JSON.parse(savedPalette));
+
   const savedColor = localStorage.getItem("primaryColor");
   const savedCustom = localStorage.getItem("customPrimaryColor");
-
   if (savedColor) setSelectedColor(savedColor);
   if (savedCustom) setCustomColor(JSON.parse(savedCustom));
 
-  const fetchLogoAndExtractColors = async () => {
-    const token = localStorage.getItem("token");
-    const response = await fetch("http://localhost:5000/api/logo", {
-      headers: { Authorization: `Bearer ${token}` },
+  // helper: blob -> data URL
+  const blobToDataURL = (blob) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
     });
 
-    const blob = await response.blob();
-    const imageUrl = URL.createObjectURL(blob);
+  const fetchLogoAndExtractColors = async () => {
+    try {
+      let dataUrl = null;
 
-    const img = new Image();
-    img.crossOrigin = "Anonymous";
-    img.src = imageUrl;
-
-    img.onload = () => {
-      const colorThief = new ColorThief();
-      try {
-        const palette = colorThief.getPalette(img, 4);
-        let hexColors = palette.map(
-          (rgb) =>
-            `#${rgb.map((v) => v.toString(16).padStart(2, "0")).join("")}`
-        );
-
-        // 🟡 Add custom color to palette if it was saved before
-        if (savedColor && !hexColors.includes(savedColor)) {
-          hexColors.push(savedColor);
-        }
-
-        setColors(hexColors);
-      } catch (err) {
-        console.error("Color extraction failed:", err);
+      // 2) Prefer location.state if it's already a DATA URL
+      if (typeof croppedLogo === "string" && croppedLogo.startsWith("data:")) {
+        dataUrl = croppedLogo;
       }
-    };
 
-    imgRef.current = img;
+      // 3) If location.state is a BLOB URL, try to convert it (works before refresh, but not after)
+      if (!dataUrl && typeof croppedLogo === "string" && croppedLogo.startsWith("blob:")) {
+        try {
+          const res = await fetch(croppedLogo);
+          const blob = await res.blob();
+          dataUrl = await blobToDataURL(blob);
+        } catch {
+          // blob: is likely dead after refresh; ignore and fall through
+        }
+      }
+
+      // 4) Local cache from Step 2
+      if (!dataUrl) {
+        const cached = localStorage.getItem("last_logo_preview"); // data URL only
+        if (cached && cached.startsWith("data:")) dataUrl = cached;
+      }
+
+      // 5) Backend fallback
+      if (!dataUrl) {
+        const token = localStorage.getItem("token");
+        const res = await fetch("http://localhost:5000/api/logo", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const blob = await res.blob();
+          if (blob && blob.size > 0) dataUrl = await blobToDataURL(blob);
+        }
+      }
+
+      if (!dataUrl) {
+        console.warn("No logo available for color extraction.");
+        return;
+      }
+
+      // Persist for Step 2 (back) and future refreshes
+      localStorage.setItem("last_logo_preview", dataUrl);
+
+      // Build <img> for ColorThief
+      const img = new Image();
+      img.crossOrigin = "Anonymous";
+      img.src = dataUrl;
+
+      img.onload = () => {
+        const colorThief = new ColorThief();
+        try {
+          const palette = colorThief.getPalette(img, 4);
+          let hexColors = palette.map(
+            (rgb) => `#${rgb.map((v) => v.toString(16).padStart(2, "0")).join("")}`
+          );
+
+          const saved = localStorage.getItem("primaryColor");
+          if (saved && !hexColors.includes(saved)) hexColors.push(saved);
+
+          setColors(hexColors);
+          localStorage.setItem("primaryPalette", JSON.stringify(hexColors));
+        } catch (err) {
+          console.error("Color extraction failed:", err);
+        }
+      };
+
+      imgRef.current = img;
+    } catch (err) {
+      console.error("Failed to hydrate logo for color extraction:", err);
+    }
   };
 
   fetchLogoAndExtractColors();
-}, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [croppedLogo]);
 
 
   const handleColorChange = (color) => {
@@ -76,41 +147,94 @@ const PrimaryColorModal = ({ onClose, onBack, onNext, cardId }) => {
 };
 
 const handleNext = async () => {
-  if (!cardId) { // 🆕 Add a check
-      console.error("Card ID is missing. Cannot save color.");
-      // Optionally, you could just proceed without saving if a cardId isn't found,
-      // but it's better to show an error and not proceed.
-      onNext(); 
-      return;
-    }
-
   try {
     const token = localStorage.getItem("token");
+    if (!token) {
+         alert("You’re not logged in. Please log in again.");
+         return;
+       }
 
-    const primaryColor = selectedColor || `#${(
-      (1 << 24) +
-      (customColor.r << 16) +
-      (customColor.g << 8) +
-      customColor.b
-    )
-      .toString(16)
-      .slice(1)}`;
+    // Create a payload to send to the server
+    // guard IDs (router state may be empty after refresh)
+   if (cardType === "Myself" && !effectiveCardId) {
+     alert("Missing card ID. Please go back to Step 1.");
+     return;
+   }
+   if (cardType === "Team" && !effectiveTeamId) {
+     alert("Missing team ID. Please go back to Step 1.");
+     return;
+   }
 
-    await fetch("http://localhost:5000/api/save-color", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ primaryColor, cardId }),
+   const payload = {
+     primaryColor: selectedColor,
+     cardType,
+     cardId: cardType === "Myself" ? effectiveCardId : undefined,
+     teamId: cardType === "Team" ? effectiveTeamId : undefined,
+   };
+
+   const res = await fetch("http://localhost:5000/api/save-color", {
+       method: "POST",
+       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+       body: JSON.stringify(payload),
+     });
+     if (!res.ok) {
+       const errBody = await res.json().catch(() => ({}));
+       throw new Error(errBody.error || `Save failed (${res.status})`);
+     }
+
+    // Navigate to the next step, passing all relevant data
+    navigate("/create/background-color", {
+      state: {
+        cardType,
+        cardId: effectiveCardId,
+        teamId: effectiveTeamId,
+        croppedLogo,
+        primaryColor: selectedColor
+      }
     });
-
-    onNext();
-    
-
   } catch (err) {
     console.error("Failed to save color:", err);
+    // It's a good practice to still navigate even on error for now
+    // to not block the user, as the error might be temporary
+    navigate("/create/background-color", {
+      state: {
+        cardType,
+        cardId: effectiveCardId,
+        teamId: effectiveTeamId,
+        croppedLogo,
+        primaryColor: selectedColor
+      }
+    });
   }
+};
+
+const handleBack = () => {
+  const cachedDataUrl = localStorage.getItem("last_logo_preview") || null;
+
+  // Navigate back to the previous step (CompanyLogoModal)
+  navigate("/create/company-logo", {
+    state: {
+      cardType,
+      cardId: effectiveCardId,
+      teamId: effectiveTeamId,
+      // prefer persistent data URL so Step 2 has a valid image after refresh
+      croppedLogo: cachedDataUrl,
+    }
+  });
+};
+
+// This handler adds the custom color to the palette and selects it
+const handleAddCustomColor = (color) => {
+  const hex = color.hex;
+  setCustomColor(color.rgb);
+  setSelectedColor(hex);
+  if (!colors.includes(hex)) {
+      setColors((prev) => [...prev, hex]);
+  }
+  setShowPicker(false);
+  // Persist to local storage
+  localStorage.setItem("primaryColor", hex);
+  localStorage.setItem("customPrimaryColor", JSON.stringify(color.rgb));
 };
 
 
@@ -210,17 +334,19 @@ const handleNext = async () => {
 
 
 
-        <div className="flex justify-between mt-4">
+<div className="flex justify-between mt-4">
           <button
-            onClick={onBack}
+            onClick={handleBack}
             className="text-sm border px-4 py-2 rounded hover:bg-gray-100"
           >
             ← Previous
           </button>
           <button
             onClick={handleNext}
-
-            className="bg-blue-400 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-500"
+            disabled={!selectedColor}
+            className={`bg-blue-400 text-white px-4 py-2 rounded-md text-sm ${
+              selectedColor ? "hover:bg-blue-500" : "opacity-50 cursor-not-allowed"
+            }`}
           >
             Next →
           </button>
