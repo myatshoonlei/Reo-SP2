@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 @import "tailwindcss";
 
 /* Specificity is key, add more specificity to target the inner elements of ReactSelect */
@@ -13,3 +14,8 @@
 .job-title-select .react-select__single-value {
   font-size: 1rem !important; /* Adjust font size */
 }
+=======
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+>>>>>>> e5875884714e99cadbd0c233c6947c4f77e7a52d
