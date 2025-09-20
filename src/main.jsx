@@ -1,10 +1,15 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import App from "./App";
-import "./index.css";
+import ReactDOM from 'react-dom/client';
+import { StrictMode } from 'react';
+import './index.css';
+import App from './App.jsx';
+import { GoogleOAuthProvider } from "@react-oauth/google";
+
+const clientId = "730658534924-fhu1dutfe48tkhoo2kikno1vfnno9oal.apps.googleusercontent.com";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+  <StrictMode>
+    <GoogleOAuthProvider clientId={clientId}>
+      <App />
+    </GoogleOAuthProvider>
+  </StrictMode>
 );
