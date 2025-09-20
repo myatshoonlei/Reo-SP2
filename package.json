@@ -1,5 +1,9 @@
 {
+<<<<<<< HEAD
   "name": "reo-sp2",
+=======
+  "name": "reo-website",
+>>>>>>> e5875884714e99cadbd0c233c6947c4f77e7a52d
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,6 +14,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+<<<<<<< HEAD
     "@tailwindcss/vite": "^4.1.11",
     "aos": "^2.3.4",
     "bcryptjs": "^3.0.2",
@@ -35,5 +40,27 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.2.0",
     "vite": "^7.0.0"
+=======
+    "aos": "^2.3.4",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.25.0",
+    "@tailwindcss/postcss": "^4.1.8",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "^4.4.1",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.25.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "globals": "^16.0.0",
+    "postcss": "^8.5.4",
+    "tailwindcss": "^4.1.8",
+    "tailwindcss-cli": "^0.1.2",
+    "vite": "^6.3.5"
+>>>>>>> e5875884714e99cadbd0c233c6947c4f77e7a52d
   }
 }

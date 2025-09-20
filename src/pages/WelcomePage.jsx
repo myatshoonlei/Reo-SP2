@@ -85,4 +85,8 @@ const WelcomePage = () => {
   );
 };
 
+<<<<<<< HEAD
 export default WelcomePage;
+=======
+export default WelcomePage;
+>>>>>>> e5875884714e99cadbd0c233c6947c4f77e7a52d
