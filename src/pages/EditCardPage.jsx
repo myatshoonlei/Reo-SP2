@@ -22,6 +22,8 @@ const templateMap = {
   template6: Template6,
 };
 
+
+
 const templateIdToKey = (id) =>
   ({ 1: "template1", 2: "template2", 3: "template3", 4: "template4", 5: "template5", 6: "template6" }[Number(id)] || "template1");
 
@@ -277,8 +279,9 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
     email,
     profile_photo: profileImageUrl,
     logo: companyLogoUrl,
-    primary_color: primaryColor, // 💡 Use state variable
-    secondary_color: secondaryColor, // 💡 Use state variable
+    primary_color: primaryColor,
+    secondary_color: secondaryColor,
+    company_address: companyAddress,
   };
 
   // replace CardComponent selection
@@ -294,14 +297,14 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
   };
 
   return (
-    <>
+    <div className="min-h-screen font-inter bg-gradient-to-b from-[#F3F9FE] to-[#C5DBEC]">
       {/* ✅ Navbar at the very top */}
       <Navbar onSave={saveAll} saving={saving} onClose={closeModal} />
   
       {/* ✅ Add pt-20 to offset the fixed navbar */}
-      <div className="flex pt-20">
+      <div className="flex pt-24 ">
         {/* Sidebar on the left */}
-        <Sidebar />
+        <Sidebar activePage="Edit Card" />
   
         {/* Main content on the right */}
         <div className="flex-1 px-6 pt-4 h-[calc(100vh-80px)] overflow-hidden">
@@ -428,7 +431,8 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
           </div>
         </div>
       </div>
-    </>
+      </div>
+    
   );  
 }
 
