@@ -13,7 +13,7 @@ const Template3 = (rawProps) => {
   const primary_color   = cleanupColor(rawProps.primary_color ?? rawProps.primaryColor ?? "#0B2447");
   const secondary_color = cleanupColor(rawProps.secondary_color ?? rawProps.secondaryColor ?? "#19A7CE");
 
-  const logoSrc         = getLogoSrc(rawProps.logo ?? rawProps.logoUrl) || "/placeholder.svg";
+  const logo         = getLogoSrc(rawProps.logo ?? rawProps.logoUrl) || "/placeholder.svg";
 
   const side            = rawProps.side ?? "front";
   const qr              = rawProps.qr ?? null;
@@ -61,8 +61,10 @@ const Template3 = (rawProps) => {
 
   /* -------------------- FRONT SIDE (Glassmorphism) -------------------- */
   return (
-    <div className="relative w-full h-[200px] rounded-xl shadow-lg font-sans overflow-hidden hover:shadow-xl transition-all duration-300 text-white">
-      {/* Gradient background */}
+    <div
+      className="relative w-full h-[200px] rounded-xl shadow-lg font-sans overflow-hidden hover:shadow-xl transition-all duration-300 text-white"
+    >
+      {/* Gradient Background */}
       <div
         className="absolute inset-0"
         style={{
@@ -70,49 +72,41 @@ const Template3 = (rawProps) => {
         }}
       />
 
-      {/* Frosted glass panel */}
+      {/* Frosted Glass Panel */}
       <div className="absolute inset-3 rounded-lg bg-white/10 backdrop-blur-md border border-white/20 p-4 flex flex-col justify-between">
-        {/* Top: Logo + Name/Title */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="font-bold text-lg truncate" title={fullname}>
-              {fullname}
-            </h3>
-            <p className="text-sm opacity-90 truncate" title={job_title}>
-              {job_title}
-            </p>
-            <p className="text-xs opacity-75 truncate mt-1" title={company_name}>
-              {company_name}
-            </p>
-          </div>
 
+        {/* Top Section: Logo, Company, Title */}
+        <div className="flex items-center space-x-3">
           <img
-            src={logoSrc}
+            src={logo || "/placeholder.svg"}
             alt="Logo"
-            className="w-12 h-12 rounded object-cover bg-white/20 p-1"
-            onError={(e) => {
-              e.currentTarget.src = "/placeholder.svg";
-            }}
+            className="w-12 h-12 rounded-full object-cover border-2 border-white/50"
           />
+          <div>
+            <p className=" text-xl font-bold">{fullname || "Ben10"}</p>
+            <p className="text-sm opacity-70">{job_title || "Job Title"}</p>
+          </div>
         </div>
 
-        {/* Bottom: Company / Contact */}
-        <div className="space-y-1">
-          <div className="border-t border-white/20 my-2" />
-          <div className="flex justify-between text-xs opacity-90 gap-2">
-            <span className="truncate" title={company_address}>
-              {company_address || "123 Main Street, Anytown"}
-            </span>
-            <div className="flex flex-col items-end min-w-0">
-              <span className="truncate" title={phone_number}>
-                {phone_number}
-              </span>
-              <span className="truncate" title={email}>
-                {email}
-              </span>
+        {/* Bottom Section: Name & Contact */}
+        <div>
+          
+          <div className="border-t border-white/20 my-2"></div>
+
+          <div className="flex justify-between text-xs opacity-80">
+            {/* Left side (Email) */}
+            <span>{company_address || "123 Main Street, Anytown"}</span>
+            
+
+            {/* Right side (Phone + Address stacked) */}
+            <div className="flex flex-col items-end">
+              
+              <span>{phone_number || "+1 (555) 123-4567"}</span>
+              <span>{email || "email@example.com"}</span>
             </div>
           </div>
         </div>
+
       </div>
     </div>
   );

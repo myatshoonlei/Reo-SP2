@@ -9,6 +9,9 @@ import PreviewModal from "../components/PreviewModal";
 import Template1 from "../components/templates/Template1";
 import Template2 from "../components/templates/Template2";
 import Template3 from "../components/templates/Template3";
+import Template4 from "../components/templates/Template4";
+import Template5 from "../components/templates/Template5";
+import Template6 from "../components/templates/Template6";
 
 import { getLogoSrc } from "../utils/logoUtils";
 
@@ -20,6 +23,9 @@ export default function Home() {
     template1: Template1,
     template2: Template2,
     template3: Template3,
+    template4: Template4,
+    template5: Template5,
+    template6: Template6,
   };
 
   const [cards, setCards] = useState([]);

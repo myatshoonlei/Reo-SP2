@@ -3,6 +3,10 @@ import { useNavigate, useLocation } from "react-router-dom";
 import Template1 from "./templates/Template1";
 import Template2 from "./templates/Template2";
 import Template3 from "./templates/Template3";
+import Template4 from "./templates/Template4";  
+import Template5 from "./templates/Template5";
+import Template6 from "./templates/Template6";
+
 import { getLogoSrc } from "../utils/logoUtils";
 import { getPublicCardUrl } from "../utils/shareUrl";
 import { compressImage, fileToBase64 } from "../utils/imageUtils";
@@ -218,6 +222,9 @@ export default function TemplateSelectionModal() {
     template1: Template1,
     template2: Template2,
     template3: Template3,
+    template4: Template4,
+    template5: Template5,
+    template6: Template6, 
   };
 
 // replace your goBack with:
@@ -360,7 +367,7 @@ const handleNext = async () => {
 
   return (
     <div className="fixed inset-0 z-50 flex justify-center items-center bg-white/30 backdrop-blur-sm transition-opacity duration-300">
-      <div className="bg-white rounded-xl p-8 shadow-xl w-[90vw] max-w-[1200px] max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-xl p-8 shadow-xl w-[90vw] max-w-[1200px] max-h-[90vh] flex flex-col">
         <h2 className="font-semibold text-gray-600 text-sm mb-1 text-center">Step 5</h2>
         <h3 className="text-lg font-bold text-[#0b2447] mb-1 text-center">
           Choose a template for Your Business Card
@@ -369,7 +376,7 @@ const handleNext = async () => {
           Pick a template. You can change it later.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 flex-1 overflow-y-auto pr-2 pb-4">
           {templates.map((t) => {
             const T = templateMap[t.component_key];
             return (
@@ -388,7 +395,7 @@ const handleNext = async () => {
           })}
         </div>
 
-        <div className="mt-10 flex justify-between">
+        <div className="pt-2 flex justify-between">
           <button
             onClick={goBack}
             className="border border-[#0B2447] text-[#0B2447] px-6 py-2 rounded hover:bg-[#e7edf6]"

@@ -1,6 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 
 /* Specificity is key, add more specificity to target the inner elements of ReactSelect */
 .job-title-select .react-select__control {

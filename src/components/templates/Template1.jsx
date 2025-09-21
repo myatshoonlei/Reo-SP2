@@ -16,62 +16,110 @@ const Template1 = (rawProps) => {
   const company_name    = rawProps.company_name    ?? rawProps.companyName     ?? "Company";
   const job_title       = rawProps.job_title       ?? rawProps.jobTitle        ?? "Title";
   const phone_number    = rawProps.phone_number    ?? rawProps.phoneNumber     ?? "123-456-7890";
-  const with_qr_code    = rawProps.with_qr_code    ?? rawProps.withQRCode      ?? false;
-
+  const company_address = rawProps.company_address ?? rawProps.companyAddress  ?? "";
   // colors (bg = secondary, fg = primary)
   const primary_color   = cleanupColor(rawProps.primary_color ?? rawProps.primaryColor ?? "#ffffff");
   const secondary_color = cleanupColor(rawProps.secondary_color ?? rawProps.secondaryColor ?? "#0b0b0b");
 
   // logo
-  const logoSrc = getLogoSrc(rawProps.logo ?? rawProps.logoUrl) || "/placeholder.svg";
+  const logo            = getLogoSrc(rawProps.logo) || rawProps.logoUrl || "/placeholder.svg";
 
+  const side            = rawProps.side ?? "front";
+  const qr              = rawProps.qr ?? null;
+  const backShow        = rawProps.backShow ?? {};
+
+  const show = {
+    logo: backShow?.logo ?? true,
+    qr: backShow?.qr ?? true,
+    companyName: backShow?.companyName ?? true,
+  };
+
+  if (side === "back") {
+    // -------------- BACK SIDE (No changes) --------------
+    return (
+      <div
+        className="w-full h-[200px] rounded-xl border shadow-md p-4 font-inter flex items-center justify-between"
+        style={{ backgroundColor: secondary_color, color: primary_color, fontFamily: 'Poppins, sans-serif' }}
+      >
+        <div className="w-full h-full flex flex-col items-center justify-center">
+          {show.qr &&
+            (qr ? (
+              <img
+                src={qr}
+                alt="QR"
+                className="w-14 h-14 rounded bg-white p-1"
+                style={{ border: `2px solid ${primary_color}` }}
+              />
+            ) : (
+              <div
+                className="w-14 h-14 rounded bg-white/60 flex items-center justify-center text-[10px]"
+                style={{ border: `1px dashed ${primary_color}` }}
+              >
+                QR
+              </div>
+            ))}
+          {show.companyName && (
+            <span className="mt-2 font-semibold text-center">
+              {company_name || "Company"}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // -------------- FRONT SIDE (New Innovative Design) --------------
   return (
     <div
-      className="w-full h-[200px] rounded-xl border shadow-md p-4 flex flex-col justify-between font-inter hover:shadow-lg transition-all"
-      style={{ backgroundColor: secondary_color, color: primary_color }}
+      className="relative w-full h-[200px] rounded-xl border shadow-lg p-5 flex flex-col justify-between font-sans overflow-hidden hover:shadow-xl transition-all duration-300"
+      style={{ backgroundColor: secondary_color, color: primary_color, fontFamily: 'Poppins, sans-serif' }}
     >
-      {/* Top Row: Logo & Name */}
-      <div className="flex justify-between items-center">
-        <img
-          src={logoSrc}
-          alt="Logo"
-          className="w-12 h-12 object-contain rounded"
-          onError={(e) => { e.currentTarget.src = "/placeholder.svg"; }}
-        />
-        <div className="text-right">
-          <h2 className="font-bold text-lg truncate" title={fullname}>{fullname}</h2>
-          <p className="text-sm opacity-90 truncate" title={job_title}>{job_title}</p>
+      {/* Innovative Background Shapes */}
+      <div
+        className="absolute w-48 h-48 rounded-full opacity-20 -top-10 -right-16"
+        style={{ backgroundColor: primary_color }}
+      ></div>
+      <div
+        className="absolute w-32 h-32 rounded-full opacity-10 -bottom-16 -left-10"
+        style={{ backgroundColor: primary_color }}
+      ></div>
+
+      {/* Main content container ensures it's above the shapes */}
+      <div className="relative z-10 flex flex-col justify-between h-full">
+        {/* Top Section: Logo & Name */}
+        <div className="flex justify-between items-start">
+          {/* Logo in a "Glass" Frame */}
+          <div
+            className="w-16 h-16 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center"
+            style={{ border: `2px solid ${primary_color}` }}
+          >
+            <img
+              src={logo || "/placeholder.svg"}
+              alt="Logo"
+              className="w-14 h-14 object-contain"
+            />
+          </div>
+
+          {/* Name and Job Title */}
+          <div className="text-right flex flex-col items-end">
+            <h2 className="font-extrabold text-xl leading-tight">
+              {fullname || "Full Name"}
+            </h2>
+            <p className="text-md font-medium opacity-80 mt-1">
+              {job_title || "Job Title"}
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* Divider */}
-      <div className="border-t my-2" style={{ borderColor: primary_color, opacity: 0.25 }} />
-
-      {/* Info Section */}
-      <div className="text-sm leading-5 space-y-1">
-        <p className="font-semibold truncate" title={company_name}>{company_name}</p>
-        <p className="truncate" title={email}>{email}</p>
-        <p className="truncate" title={phone_number}>{phone_number}</p>
-      </div>
-
-      {/* Optional QR (kept from your first version) */}
-      {with_qr_code && (
-        <div
-          className="w-1/3 flex flex-col items-center justify-center border-l pl-3 ml-3 self-end"
-          style={{ borderColor: primary_color, opacity: 0.35 }}
-        >
-          <svg className="w-16 h-16" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="256" height="256" rx="12" fill="white"/>
-            <path d="M76 76H36V36H76V76ZM64 48H48V64H64V48Z" fill={primary_color}/>
-            <path d="M36 180H76V220H36V180ZM48 192V208H64V192H48Z" fill={primary_color}/>
-            <path d="M180 76H220V36H180V76ZM192 48H208V64H192V48Z" fill={primary_color}/>
-            <path d="M108 108H148V148H108V108ZM120 120V136H136V120H120Z" fill={primary_color}/>
-          </svg>
-          <p className="text-xs mt-1 text-center" style={{ color: primary_color, opacity: 0.8 }}>
-            Scan Me
+        {/* Contact Info Section */}
+        <div className="text-sm leading-6 space-y-1">
+          <p className="font-bold">{company_name || "Company Name"}</p>
+          <p className="opacity-90">{email || "email@example.com"}</p>
+          <p className="opacity-90">
+            {phone_number || "+1 (555) 123-4567"}
           </p>
         </div>
-      )}
+      </div>
     </div>
   );
 };

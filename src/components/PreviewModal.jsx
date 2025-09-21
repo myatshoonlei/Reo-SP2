@@ -4,11 +4,14 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Template1 from "./templates/Template1";
 import Template2 from "./templates/Template2";
 import Template3 from "./templates/Template3";
+import Template4 from "./templates/Template4";
+import Template5 from "./templates/Template5";
+import Template6 from "./templates/Template6";
 // import { Phone, Mail, Building, Download, ImageDown, Scan } from "lucide-react";
 import { Phone, Mail, Building, Download, ImageDown, Scan, User, Save } from "lucide-react";
 
 
-const templateMap = { template1: Template1, template2: Template2, template3: Template3 };
+const templateMap = { template1: Template1, template2: Template2, template3: Template3, template4: Template4, template5: Template5, template6: Template6 };
 
 // unify fields (camelCase & snake_case) and pass EVERYTHING needed to templates
 const buildTemplateProps = (raw = {}) => {
