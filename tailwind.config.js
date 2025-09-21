@@ -13,6 +13,7 @@ export default {
         reoPale: "#f0f8ff", // Optional: for feature cards background
       },
       fontFamily: {
+        poppins: ["Poppins", "sans-serif"],
         inter: ["Inter", "sans-serif"],
         outfit: ["Outfit", "sans-serif"],
         robot: ["Roboto", "sans-serif"], // Add in case you use robot font anywhere

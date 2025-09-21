@@ -5,6 +5,9 @@ import UploadTile from "../components/UploadTile";
 import Template1 from "../components/templates/Template1";
 import Template2 from "../components/templates/Template2";
 import Template3 from "../components/templates/Template3";
+import Template4 from "../components/templates/Template4";
+import Template5 from "../components/templates/Template5";
+import Template6 from "../components/templates/Template6";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 
@@ -14,10 +17,13 @@ const templateMap = {
   template1: Template1,
   template2: Template2,
   template3: Template3,
+  template4: Template4,
+  template5: Template5,
+  template6: Template6,
 };
 
 const templateIdToKey = (id) =>
-  ({ 1: "template1", 2: "template2", 3: "template3" }[Number(id)] || "template1");
+  ({ 1: "template1", 2: "template2", 3: "template3", 4: "template4", 5: "template5", 6: "template6" }[Number(id)] || "template1");
 
 const buildTemplateProps = (raw = {}) => {
   const props = {

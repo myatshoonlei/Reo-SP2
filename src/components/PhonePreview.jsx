@@ -46,7 +46,7 @@ export default function PhonePreview({
               <div className="flex items-center gap-2">
                 <img
                   src={avatar}
-                  alt="avatar"
+                  alt=""
                   className="h-10 w-10 rounded-full object-cover ring-2 ring-white/80 shadow"
                 />
                 <div>

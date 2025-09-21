@@ -65,55 +65,56 @@ const Template2 = (rawProps) => {
       className="relative w-full h-[200px] rounded-xl shadow-lg flex font-sans overflow-hidden"
       style={{ backgroundColor: secondary_color, color: primary_color }}
     >
-      {/* Background Shapes */}
-      <div className="absolute inset-0 z-0" style={{ backgroundColor: secondary_color }} />
+      {/* Background Shapes - Retained from your preferred version */}
+      <div
+        className="absolute inset-0 z-0"
+        style={{ backgroundColor: secondary_color }}
+      ></div>
       <div
         className="absolute top-0 left-0 w-1/2 h-full transform -skew-x-12 origin-top-left"
-        style={{ backgroundColor: primary_color, left: "-25%" }}
-      />
+        style={{ backgroundColor: primary_color, left: '-25%' }}
+      ></div>
       <div
         className="absolute top-0 left-0 w-1/3 h-full transform -skew-x-12 origin-top-left"
-        style={{ backgroundColor: primary_color, opacity: 0.8, left: "-15%" }}
-      />
+        style={{ backgroundColor: primary_color, opacity: 0.8, left: '-15%' }}
+      ></div>
       <div
         className="absolute bottom-0 right-0 w-1/2 h-1/2 rounded-tl-full opacity-10"
         style={{ backgroundColor: primary_color }}
-      />
+      ></div>
 
-      {/* Left: Logo */}
+      {/* Left Section: Company Logo - Width reduced */}
       <div
-        className="relative z-10 w-1/3 flex flex-col items-center justify-center p-5"
+        className="relative z-15 w-1/3 flex flex-col items-center justify-center p-5 text-white"
         style={{ backgroundColor: primary_color }}
       >
         <img
-          src={logo}
-          alt="Company Logo"
-          className="w-14 h-14 object-cover rounded-full border-2 border-white/50"
-          onError={(e) => { e.currentTarget.src = "/placeholder.svg"; }}
-        />
+            src={logo || "/placeholder.svg"}
+            alt="Logo"
+            className="w-12 h-12 rounded-full object-cover border-2 border-white/50"
+          />
       </div>
 
-      {/* Right: Details */}
-      <div className="relative z-10 w-2/3 p-4 flex flex-col justify-center">
-        <h3 className="text-2xl font-bold uppercase leading-tight">
-          {fullname}
-        </h3>
-        <p className="text-sm font-medium opacity-80 mb-4">
-          {job_title}
-        </p>
+      {/* Right Section: Personal Details - Width increased */}
+      <div
+        className="relative z-10 w-2/3 p-4 flex flex-col justify-center"
+        style={{ color: primary_color }}
+      >
+        <h3 className="text-2xl font-bold uppercase leading-tight">{fullname || "FULL NAME"}</h3>
+        <p className="text-sm font-medium opacity-80 mb-4">{job_title || "Job Title"}</p>
 
         <div className="space-y-2 text-sm mt-auto">
           <div className="flex items-center gap-2">
             <Phone size={16} />
-            <span>{phone_number}</span>
+            <span>{phone_number || "+1 (555) 123-4567"}</span>
           </div>
           <div className="flex items-center gap-2">
             <Mail size={16} />
-            <span>{email}</span>
+            <span>{email || "email@example.com"}</span>
           </div>
           <div className="flex items-center gap-2">
             <MapPin size={16} />
-            <span className="truncate">{company_address}</span>
+            <span className='truncate'>{company_address || "123 Main Street, Anytown"}</span>
           </div>
         </div>
       </div>
