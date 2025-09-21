@@ -214,15 +214,15 @@ const openAboutEdit = () => {
   return (
     <div className="min-h-screen font-inter bg-gradient-to-b from-[#F3F9FE] to-[#C5DBEC]">
       <Navbar />
-      <div className="flex pt-24">
+      <div className="flex flex-col md:flex-row pt-24">
         <Sidebar />
-        <main className="w-4/5 p-6">
-        <ShareModal 
-        card={cardToShare} 
-        onClose={handleCloseModal}
-        cardRef={cardToShare ? cardRefs.current[cardToShare.id] : null}
-        TemplateComponent={cardToShare ? templateMap[cardToShare.component_key] : null}
-      />
+        <main className="w-full md:w-4/5 p-6">
+          <ShareModal
+            card={cardToShare}
+            onClose={handleCloseModal}
+            cardRef={cardToShare ? cardRefs.current[cardToShare.id] : null}
+            TemplateComponent={cardToShare ? templateMap[cardToShare.component_key] : null}
+          />
           {showPreview && (
         <PreviewModal
           open={showPreview}

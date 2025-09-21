@@ -4,6 +4,11 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes pop {
+  0%   { transform: scale(.96); opacity: 0; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+
 
 /* Specificity is key, add more specificity to target the inner elements of ReactSelect */
 .job-title-select .react-select__control {

@@ -12,6 +12,7 @@ import templateRoutes from "./routes/templateRoutes.js";
 import cardRoutes from './routes/cardRoutes.js';
 import verifyEmailRouter from './routes/verifyEmailRoute.js';
 import profilePhotoUploadRouter from './routes/profilePhotoUpload.js';
+import contactRoutes from './routes/contactRoute.js';
 
 
 dotenv.config();
@@ -37,6 +38,7 @@ app.use('/api/teamInfo', teamInfoRoutes);
 app.use("/api/templates", templateRoutes);
 app.use('/api/verify-email', verifyEmailRouter);
 app.use("/api/card", cardRoutes); 
+app.use('/api/contacts', contactRoutes);
 app.use('/api/profile-photo', profilePhotoUploadRouter); 
 
 // Start Server

@@ -5,7 +5,7 @@ import { ChevronDown } from "lucide-react";
 export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation(); // Hook to get the current URL
-  
+
   const [activePage, setActivePage] = useState("My Cards");
   const [isMyCardsOpen, setIsMyCardsOpen] = useState(false);
 
@@ -20,10 +20,10 @@ export default function Sidebar() {
       setIsMyCardsOpen(false);
     } else if (pathname.startsWith('/support')) {
       setActivePage("Support");
-       setIsMyCardsOpen(false);
+      setIsMyCardsOpen(false);
     } else if (pathname.startsWith('/settings')) {
       setActivePage("Settings");
-       setIsMyCardsOpen(false);
+      setIsMyCardsOpen(false);
     }
   }, [location.pathname]);
 
@@ -45,7 +45,10 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="ml-6 w-1/5 bg-[#f0f8ff] p-4 flex flex-col items-center rounded-xl shadow-md h-fit">
+    // --- RESPONSIVE FIXES APPLIED HERE ---
+    // On mobile (default): Takes full width, has a bottom margin (mb-6) to separate from content below.
+    // On medium screens (`md:`) and up: Takes 1/5 width, gets a left margin, and bottom margin is removed.
+    <aside className="w-full p-4 md:w-1/5 md:ml-6 mb-6 md:mb-0 bg-[#f0f8ff] flex flex-col items-center rounded-xl shadow-md h-fit">
       <ul className="w-full space-y-2">
         {/* My Cards Dropdown */}
         <li>

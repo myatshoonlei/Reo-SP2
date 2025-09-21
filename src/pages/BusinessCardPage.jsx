@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { Phone, Mail, Download, Building, ImageDown } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Phone, Mail, Download, Building, ImageDown, UserPlus, CheckCircle, Info, AlertTriangle, X } from "lucide-react";
 import { toPng } from 'html-to-image';
 import ReactDOM from 'react-dom/client';
 
@@ -10,6 +10,9 @@ import ReactDOM from 'react-dom/client';
 import Template1 from '../components/templates/Template1';
 import Template2 from '../components/templates/Template2';
 import Template3 from '../components/templates/Template3';
+import Template4 from '../components/templates/Template4';
+import Template5 from '../components/templates/Template5';
+import Template6 from '../components/templates/Template6';
 
 
 // Maps template names from the database to the actual imported React components.
@@ -18,26 +21,55 @@ const templateMap = {
     Template1: Template1,
     Template2: Template2,
     Template3: Template3,
+    Template4: Template4,
+    Template5: Template5,
+    Template6: Template6,
     // Add other templates here as needed
 };
 
 
 const BusinessCardPage = () => {
     const { id } = useParams();
+    const navigate = useNavigate();
     const [card, setCard] = useState(null);
     const [isMobileDevice, setIsMobileDevice] = useState(false);
+    const [isOwner, setIsOwner] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [isAlreadySaved, setIsAlreadySaved] = useState(false); // New state to track if contact is saved
+    const [isSaving, setIsSaving] = useState(false); // New state for loading feedback
+
+    const [notice, setNotice] = useState(null); // string | null
+
+    const showNotice = (message, type = "info", title) =>
+        setNotice({ message, type, title });
+    const closeNotice = () => setNotice(null);
 
     useEffect(() => {
+
+        const cached = localStorage.getItem(`saved_card_${id}`);
+        if (cached === "1") {
+            setIsAlreadySaved(true);
+        }
         // This check runs once after the component mounts to determine the device type.
         setIsMobileDevice(/Mobi|Android/i.test(navigator.userAgent));
 
+        const token = localStorage.getItem("token");
+        setIsLoggedIn(!!token);
+
         const fetchCard = async () => {
             try {
-                // This single fetch should now return all data from your 'personal_cards' table,
-                // including the 'template' field (e.g., "Template1").
-                const res = await fetch(`http://localhost:5000/api/card/${id}`);
+                // Send auth token if it exists so the backend can check ownership
+                const headers = token ? { Authorization: `Bearer ${token.replace(/"/g, "")}` } : {};
+                const res = await fetch(`http://localhost:5000/api/card/${id}`, { headers });
+
+                if (!res.ok) throw new Error("Card not found");
+
                 const data = await res.json();
-                setCard(data);
+                // The backend now sends a structured response
+                setCard(data.card);
+                setIsOwner(data.isOwner);
+                setIsAlreadySaved(data.isAlreadySaved);
+
             } catch (err) {
                 console.error("Error loading card:", err);
             }
@@ -45,6 +77,52 @@ const BusinessCardPage = () => {
 
         fetchCard();
     }, [id]);
+
+    const handleSaveToReo = async () => {
+        if (!isLoggedIn) {
+            alert("Please log in or create an account to save contacts.");
+            navigate('/login');
+            return;
+        }
+        if (!card) return;
+
+        setIsSaving(true);
+        const token = (localStorage.getItem("token") || "").replace(/"/g, "");
+
+        try {
+            const res = await fetch(`http://localhost:5000/api/contacts/add`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ contactCardId: card.id })
+            });
+
+            if (res.status === 201) {
+                // newly saved
+                setIsAlreadySaved(true);
+                localStorage.setItem(`saved_card_${card.id}`, "1");
+                showNotice(`${card.fullname} has been added to your contacts!`, "success", "Saved");
+                return;
+            }
+
+            if (res.status === 409) {
+                // already saved — show nice notice, keep disabled
+                setIsAlreadySaved(true);
+                localStorage.setItem(`saved_card_${card.id}`, "1");
+                showNotice("This contact is already in your contacts.", "info", "Already Saved");
+                return;
+            }
+
+            // any other error: show server message if present
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error || "Could not save contact.");
+        } catch (err) {
+            // console.error("Error saving to Reo:", err);
+            showNotice("You cannot save your own card.", "error", "Oops");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
 
     const handleSaveContact = () => {
         if (!card) return;
@@ -66,7 +144,7 @@ END:VCARD`;
         document.body.removeChild(link);
     };
 
-    const handleSaveVirtualCard = async () => {
+    const handleSaveBusinessCard = async () => {
         if (!card || !card.template) {
             alert("Card data or template is missing.");
             return;
@@ -124,7 +202,7 @@ END:VCARD`;
                 toPng(frontEl, options),
                 toPng(backEl, options)
             ]);
-            
+
             const loadImg = (src) => new Promise((res, rej) => {
                 const img = new Image();
                 img.crossOrigin = "anonymous";
@@ -166,6 +244,9 @@ END:VCARD`;
     };
 
 
+
+
+
     if (!card) {
         return (
             <div className="min-h-screen flex justify-center items-center bg-gray-100">
@@ -173,6 +254,13 @@ END:VCARD`;
             </div>
         );
     }
+
+    const getSaveButtonContent = () => {
+        if (isOwner) return "This is Your Card";
+        if (isAlreadySaved) return <> Saved to Contacts</>;
+        if (isSaving) return "Saving...";
+        return <> Save Card to Reo</>;
+    };
 
     // Build the list of actions dynamically
     const actions = [
@@ -185,18 +273,30 @@ END:VCARD`;
         actions.push({ label: 'Save Contact', onClick: handleSaveContact, Icon: Download, type: 'button', dark: true, iconColor: "text-[#1F2937]" });
     }
 
-    actions.push({ label: 'Save Virtual Card', onClick: handleSaveVirtualCard, Icon: ImageDown, type: 'button', dark: true, iconColor: "text-[#1F2937]" });
+    actions.push({ label: 'Save Business Card', onClick: handleSaveBusinessCard, Icon: ImageDown, type: 'button', dark: true, iconColor: "text-[#1F2937]" });
 
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-[#F1F7FE] to-[#DDEBFA] px-4 py-20 flex flex-col justify-center items-center font-sans">
             <div className="w-full max-w-md mx-auto">
                 <div className="rounded-3xl border border-white/80 bg-white/70 shadow-lg p-4 mb-4 text-center">
-                    <img
-                        src={card.logo || "https://via.placeholder.com/96"}
-                        alt="Profile"
+                    
+                    {card.profile_photo ? (
+                        <img
+                            src={`${card.profile_photo}`}
+                            alt={card.fullname}
+                            className="w-24 h-24 rounded-full object-cover ring-4 ring-white/80 shadow-md mx-auto -mt-16"
+                        />
+                    ) : (
+                        <div className="w-24 h-24 rounded-full object-cover ring-4 ring-white/80 shadow-md mx-auto -mt-16 bg-gray-300 flex items-center justify-center text-white font-semibold text-3xl">
+                            {(card.fullname || "C").charAt(0).toUpperCase()}
+                        </div>
+                    )}
+                    {/* <img
+                        src={card.profile_photo || "https://via.placeholder.com/96"}
+                        alt={card.fullname}
                         className="w-24 h-24 rounded-full object-cover ring-4 ring-white/80 shadow-md mx-auto -mt-16"
-                    />
+                    /> */}
                     <h1 className="text-2xl font-bold text-[#1e2a3a] mt-4">{card.fullname}</h1>
                     <p className="text-md text-[#5f748d]">{card.job_title}</p>
                     <div className="flex items-center justify-center gap-2 mt-2 text-[#5f748d]">
@@ -208,17 +308,17 @@ END:VCARD`;
                 <div className="space-y-4">
                     {actions.map(({ label, href, Icon, iconColor, onClick, type, dark }, i) => {
                         const content = (
-                             <div className={` rounded-xl p-2 mb-2 flex items-center justify-between border ${dark ? "bg-transparent border-white/60" : "bg-white/70 border-white/80"} ${i % 2 !== 0 ? 'flex-row-reverse' : ''} gap-1`}>
-                                 <div className={`flex-1 h-8 rounded-lg px-3 flex items-center justify-center text-base font-semibold ${dark ? "bg-[#1F2937] text-white" : "bg-white text-[#1F2937] border border-slate-200"}`}>
-                                     {label}
-                                 </div>
-                                 <div className={`flex items-center justify-center rounded-lg w-8 h-8 ${dark ? "bg-white/10" : "bg-[#EDF2F7] border border-white/70"}`}>
-                                     <Icon
-                                         strokeWidth={2.5}
-                                         className={`${iconColor} w-4 h-4`}
-                                     />
-                                 </div>
-                             </div>
+                            <div className={` rounded-xl p-2 mb-2 flex items-center justify-between border ${dark ? "bg-transparent border-white/60" : "bg-white/70 border-white/80"} ${i % 2 !== 0 ? 'flex-row-reverse' : ''} gap-1`}>
+                                <div className={`flex-1 h-8 rounded-lg hover:bg-opacity-90 transition-transform transform hover:scale-105 px-3 flex items-center justify-center text-base font-semibold ${dark ? "bg-[#1F2937] text-white" : "bg-white text-[#1F2937] border border-slate-200"}`}>
+                                    {label}
+                                </div>
+                                <div className={`flex items-center justify-center rounded-lg w-8 h-8 ${dark ? "bg-white/10" : "bg-[#EDF2F7] border border-white/70"}`}>
+                                    <Icon
+                                        strokeWidth={2.5}
+                                        className={`${iconColor} w-4 h-4`}
+                                    />
+                                </div>
+                            </div>
                         );
 
                         if (type === 'link') {
@@ -228,10 +328,83 @@ END:VCARD`;
                     })}
                 </div>
                 <div className="text-center mt-6 mb-1">
-                    <button className="bg-[#1F2937] text-white font-semibold py-3 px-6 rounded-full shadow-lg hover:bg-opacity-90 transition-transform transform hover:scale-105">
-                        Save Card to Reo
+                    <button
+                        onClick={handleSaveToReo}
+                        disabled={isOwner || isAlreadySaved || isSaving}
+                        className="bg-[#1F2937] text-white font-semibold py-3 px-6 rounded-full shadow-lg hover:bg-opacity-90 transition-transform transform hover:scale-105  disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+                    >
+                        {getSaveButtonContent()}
                     </button>
                 </div>
+
+                {notice && (
+                    <div
+                        className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+                        role="dialog"
+                        aria-modal="true"
+                        onClick={closeNotice} // click backdrop to close
+                    >
+                        <div
+                            className="w-[22rem] rounded-2xl bg-white shadow-2xl border border-slate-100 p-5 animate-[pop_200ms_ease-out] relative"
+                            onClick={(e) => e.stopPropagation()} // don't close when clicking the card
+                        >
+                            {/* Close */}
+                            <button
+                                onClick={closeNotice}
+                                aria-label="Close"
+                                className="absolute right-3 top-3 rounded-full p-1 hover:bg-slate-100 transition"
+                            >
+                                <X className="w-5 h-5 text-slate-500" />
+                            </button>
+
+                            {/* Icon + Title */}
+                            <div className="flex items-center gap-3 mb-2">
+                                {notice.type === "success" && (
+                                    <div className="rounded-full p-2 bg-green-50">
+                                        <CheckCircle className="w-6 h-6 text-green-600" />
+                                    </div>
+                                )}
+                                {notice.type === "error" && (
+                                    <div className="rounded-full p-2 bg-red-50">
+                                        <AlertTriangle className="w-6 h-6 text-red-600" />
+                                    </div>
+                                )}
+                                {(!notice.type || notice.type === "info") && (
+                                    <div className="rounded-full p-2 bg-blue-50">
+                                        <Info className="w-6 h-6 text-blue-600" />
+                                    </div>
+                                )}
+                                <h3 className="text-lg font-semibold text-slate-800">
+                                    {notice.title ?? (notice.type === "success" ? "Success"
+                                        : notice.type === "error" ? "Something went wrong" : "Heads up")}
+                                </h3>
+                            </div>
+
+                            {/* Message */}
+                            <p className="text-slate-600 mb-4">
+                                {notice.message}
+                            </p>
+
+                            {/* Actions */}
+                            <div className="flex justify-end gap-2">
+                                <button
+                                    onClick={closeNotice}
+                                    autoFocus
+                                    className={[
+                                        "px-4 py-2 rounded-lg font-medium transition shadow-sm",
+                                        notice.type === "success" && "bg-green-600 text-white hover:bg-green-700",
+                                        notice.type === "error" && "bg-red-600 text-white hover:bg-red-700",
+                                        (!notice.type || notice.type === "info") && "bg-slate-900 text-white hover:bg-slate-800"
+                                    ].join(" ")}
+                                >
+                                    OK
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+
             </div>
         </div>
     );
