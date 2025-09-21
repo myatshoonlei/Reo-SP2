@@ -5,6 +5,7 @@ export default function Navbar({ onSave, saving, onClose }) {
   const location = useLocation();
 
   const isHomePage = location.pathname === "/home";
+  const isContactsPage = location.pathname === "/contacts";
   const showEditActions = Boolean(onSave && onClose);
 
   const handleLogout = () => {
@@ -43,7 +44,7 @@ export default function Navbar({ onSave, saving, onClose }) {
           </>
         ) : (
           <>
-            {!isHomePage && (
+            {!isHomePage && !isContactsPage && (
               <>
                 <button
                   className="text-reoBlue font-medium hover:underline"
@@ -57,7 +58,7 @@ export default function Navbar({ onSave, saving, onClose }) {
               </>
             )}
 
-            {isHomePage ? (
+            {isHomePage || isContactsPage ? (
               <button
                 onClick={handleLogout}
                 className="bg-[#1E1E1E] text-white font-outfit px-6 py-2 text-lg rounded-full shadow-md hover:brightness-110 transition"

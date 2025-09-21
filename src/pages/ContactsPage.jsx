@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import { Search, Mail, Phone, Building, UserPlus, ChevronDown } from "lucide-react";
+import ContactTile from "../components/ContactTile";
+
 
 
 export default function ContactsPage() {
@@ -20,8 +22,8 @@ export default function ContactsPage() {
         setLoading(false);
         // Set dummy data for UI development if not logged in
         setContacts([
-            { id: 1, name: 'John Doe (Sample)', email: 'john.doe@example.com', phone: '0845727526', company: 'Example Inc.' },
-            { id: 2, name: 'Jane Smith (Sample)', email: 'jane.smith@work.co', phone: '0987654321', company: 'Work Co.' },
+          { id: 1, name: 'John Doe (Sample)', email: 'john.doe@example.com', phone: '0845727526', company: 'Example Inc.' },
+          { id: 2, name: 'Jane Smith (Sample)', email: 'jane.smith@work.co', phone: '0987654321', company: 'Work Co.' },
         ]);
         return;
       }
@@ -54,8 +56,24 @@ export default function ContactsPage() {
     (contact.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
     (contact.company?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
-  
-  
+
+  // Pick a background color from a preset list for consistency
+  const avatarColors = [
+    "bg-blue-500", "bg-green-500", "bg-pink-500",
+    "bg-purple-500", "bg-indigo-500", "bg-yellow-500", "bg-red-500"
+  ];
+  const getRandomColor = (seed) => {
+    // hash seed to always return the same color for same name
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % avatarColors.length;
+    return avatarColors[index];
+  };
+
+
+
 
   return (
     <div className="min-h-screen font-inter bg-gradient-to-b from-[#F3F9FE] to-[#C5DBEC]">
@@ -65,7 +83,7 @@ export default function ContactsPage() {
         <main className="w-4/5 p-6">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold text-[#0b2447]">My REO Contacts</h1>
-            
+
           </div>
 
           {/* Search Bar */}
@@ -86,22 +104,35 @@ export default function ContactsPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredContacts.map((contact) => (
-                <div key={contact.id} className="bg-white p-4 rounded-xl border shadow-md flex flex-col space-y-3 transition-all hover:shadow-lg hover:border-blue-300">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-gray-200 rounded-full flex-shrink-0"></div>
-                        <h3 className="font-bold text-lg text-gray-800 truncate">{contact.name}</h3>
-                    </div>
-                    {/* Placeholder for link/edit icons */}
-                  </div>
-                  <div className="space-y-2 text-sm text-gray-600 pl-1 pt-2 border-t">
-                    <p className="flex items-center truncate"><Mail size={14} className="mr-2 opacity-60 flex-shrink-0" /> {contact.email || "No email"}</p>
-                    <p className="flex items-center"><Phone size={14} className="mr-2 opacity-60 flex-shrink-0" /> {contact.phone || "No phone"}</p>
-                    <p className="flex items-center"><Building size={14} className="mr-2 opacity-60 flex-shrink-0" /> {contact.company || "No company"}</p>
-                  </div>
-                </div>
+                <ContactTile
+                  key={contact.id}
+                  contact={contact}
+                  getRandomColor={getRandomColor}
+                  onCopyLink={(c) => {
+                    navigator.clipboard.writeText(`${window.location.origin}/card/${c.id}`);
+                    alert("Link copied to clipboard!");
+                  }}
+                  onDelete={async (c) => {
+                    const token = localStorage.getItem("token")?.replace(/"/g, "");
+                    if (!token) return;
+                    if (!window.confirm("Are you sure you want to delete this contact?")) return;
+
+                    try {
+                      const res = await fetch(`http://localhost:5000/api/contacts/${c.id}`, {
+                        method: "DELETE",
+                        headers: { Authorization: `Bearer ${token}` },
+                      });
+                      if (res.ok) {
+                        setContacts((prev) => prev.filter((x) => x.id !== c.id));
+                      }
+                    } catch (err) {
+                      console.error("Delete failed:", err);
+                    }
+                  }}
+                />
               ))}
-               {filteredContacts.length === 0 && !loading && (
+
+              {filteredContacts.length === 0 && !loading && (
                 <div className="md:col-span-2 lg:col-span-3 text-center py-10">
                   <p className="text-gray-500">No contacts found.</p>
                 </div>
