@@ -240,7 +240,7 @@ const openAboutEdit = () => {
       )}
           <h1 className="text-2xl font-bold text-[#0b2447] mb-6 flex items-center gap-2">
             My Cards
-            <span className="text-xs bg-[#0b2447] text-white px-2 py-[2px] rounded-full">+</span>
+            {/* <span className="text-xs bg-[#0b2447] text-white px-2 py-[2px] rounded-full">+</span> */}
           </h1>
 
           {/* --- Delete Confirmation Modal --- */}
