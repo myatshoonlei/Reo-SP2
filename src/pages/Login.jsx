@@ -19,19 +19,24 @@ export default function Login() {
         },
         body: JSON.stringify({ email, password }),
       });
-      
 
-      
+
+
 
       const data = await res.json();
-      
+
 
       if (res.ok) {
         // Save JWT token to localStorage (optional, if you want to use token-based auth)
         localStorage.setItem("token", data.token);
+        localStorage.setItem(
+          "displayName",
+          data.fullname || email.split("@")[0]
+        );
+
 
         // Navigate to Home page
-        navigate("/home");
+        navigate("/home", { replace: true });
       } else {
         alert(data.error || "Something went wrong.");
       }
@@ -79,10 +84,20 @@ export default function Login() {
         {/* Google Button */}
         <GoogleLogin
           onSuccess={async (credentialResponse) => {
-            const decoded = jwtDecode(credentialResponse.credential);
-            console.log("Google User:", decoded); // check what's inside
+            const cred = credentialResponse?.credential || "";
+            const decoded = cred ? jwtDecode(cred) : null;
+            if (!decoded) {
+              alert("Google Sign-In failed. Try again.");
+              return;
+            }
+            console.log("Google User:", decoded);
 
             const { name: fullName, email: userEmail, picture } = decoded;
+            if (!userEmail) {
+              alert("Google did not return an email for this account.");
+              return;
+            }
+
 
 
             try {
@@ -99,8 +114,13 @@ export default function Login() {
 
               if (res.ok) {
                 localStorage.setItem("token", data.token);
+                localStorage.setItem(
+                  "displayName",
+                  data.name || fullName || userEmail?.split("@")[0]
+                );
+
                 alert(`Welcome ${data.name || fullName}!`);
-                navigate("/"); // or /dashboard
+                navigate("/home", { replace: true }); // or /dashboard
               } else {
                 alert(data.error || "Something went wrong.");
               }

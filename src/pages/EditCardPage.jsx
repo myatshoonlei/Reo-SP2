@@ -302,12 +302,13 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
       <Navbar onSave={saveAll} saving={saving} onClose={closeModal} />
   
       {/* ✅ Add pt-20 to offset the fixed navbar */}
-      <div className="flex pt-24 ">
+      <div className="flex flex-col md:flex-row pt-24">
         {/* Sidebar on the left */}
         <Sidebar activePage="Edit Card" />
   
         {/* Main content on the right */}
-        <div className="flex-1 px-6 pt-4 h-[calc(100vh-80px)] overflow-hidden">
+        
+        <div className="flex-1 px-6 pt-4 h-[calc(100vh-80px)] overflow-hidden w-full md:w-4/5 p-6">
           {/* alerts */}
           {(err || ok) && (
             <div className="pt-3">

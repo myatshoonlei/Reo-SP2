@@ -17,22 +17,45 @@ router.post('/signup', async (req, res) => {
   const { fullname, email, password } = req.body;
 
   try {
+    // 1️⃣ Email format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format.' });
+    }
+
+    // 2️⃣ Check if email already exists
+    const existing = await pool.query('SELECT 1 FROM users WHERE email = $1', [email]);
+    if (existing.rowCount) {
+      return res.status(400).json({ error: 'Email already registered.' });
+    }
+
+    const isValid = await verifyEmail(email);
+    if (!isValid) {
+      return res.status(400).json({ error: 'Please input a valid email address.' });
+    }
+
+    // 3️⃣ Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const result = await pool.query(
-      'INSERT INTO users (fullname, email, password) VALUES ($1, $2, $3) RETURNING *',
-      [fullname, email, hashedPassword]
-    );
-
+    // 4️⃣ Create token with user data
     const token = jwt.sign(
-      { id: result.rows[0].id, email: result.rows[0].email },
+      { fullname, email, password: hashedPassword },
       process.env.JWT_SECRET_KEY,
-      { expiresIn: '1h' }
+      { expiresIn: '15m' }
     );
 
-    res.json({ message: 'Account created successfully!', token });
+
+
+    const link = `http://localhost:5173/verify-email/${token}?redirect=true`;
+    await sendVerificationEmail(email, link);
+
+
+    res.json({ message: 'Verification link sent to your email.' });
+
+
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Signup error:', err);
+    res.status(500).json({ error: 'Server error.' });
   }
 });
 
@@ -60,7 +83,9 @@ router.post('/login', async (req, res) => {
       { expiresIn: '1h' }
     );
 
-    res.json({ message: 'Login successful', token });
+    // after creating token...
+    res.json({ message: 'Login successful', token, fullname: user.fullname });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -149,6 +174,59 @@ router.get('/verify-email/:token', async (req, res) => {
   }
 });
 
+
+// Resend Verification Route
+router.post('/resend-verification', async (req, res) => {
+  const { fullname, email, password } = req.body;
+
+  try {
+    // Check if user already exists
+    const existing = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+
+    if (existing.rowCount) {
+      const user = existing.rows[0];
+
+      if (user.isverified) {
+        return res.status(400).json({ error: 'Email already verified. You can log in.' });
+      }
+
+      // Use stored hashed password if available
+      const hashedPassword = user.password;
+      const name = user.fullname || fullname;
+
+      const token = jwt.sign(
+        { fullname: name, email, password: hashedPassword },
+        process.env.JWT_SECRET_KEY,
+        { expiresIn: '15m' }
+      );
+
+      const link = `http://localhost:5173/verify-email/${token}?redirect=true`;
+
+      await sendVerificationEmail(email, link);
+
+      return res.json({ message: 'Verification email resent. Please check your inbox.' });
+    }
+
+    // New user — hash password and send token
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const token = jwt.sign(
+      { fullname, email, password: hashedPassword },
+      process.env.JWT_SECRET_KEY,
+      { expiresIn: '15m' }
+    );
+
+    const link = `http://localhost:5173/verify-email/${token}?redirect=true`;
+    await sendVerificationEmail(email, link);
+
+    return res.json({ message: 'Verification email sent. Please check your inbox.' });
+
+  } catch (err) {
+    console.error('RESEND ERROR:', err);
+    return res.status(500).json({ error: 'Failed to resend verification email.' });
+  }
+});
+
 router.get('/check-verification', async (req, res) => {
   const { email } = req.query;
   try {
@@ -160,5 +238,7 @@ router.get('/check-verification', async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
+
 
 export default router;

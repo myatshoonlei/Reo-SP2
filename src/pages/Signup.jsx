@@ -149,8 +149,13 @@ export default function Signup() {
 
               if (res.ok) {
                 localStorage.setItem("token", data.token);
+                localStorage.setItem(
+                  "displayName",
+                  data.name || fullName || email?.split("@")[0]
+                );
+
                 alert(`Welcome ${data.name || name}!`);
-                navigate("/"); // or /dashboard
+                navigate("/home", { replace: true }); // or /dashboard
               } else {
                 alert(data.error || "Something went wrong.");
               }
