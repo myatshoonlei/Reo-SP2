@@ -17,9 +17,9 @@ import TemplateSelectionModal from "./components/TemplateSelectionModal";
 import PreviewModal from "./components/PreviewModal";
 import BusinessCardPage from "./pages/BusinessCardPage";
 import QRCodeGenerator from "./components/QRCodeGenerator";
-import AboutMeEditModal from "./pages/EditCardPage";
 import EditCardPage from "./pages/EditCardPage";
 import ContactsPage from "./pages/ContactsPage";
+import TeamMembersPage from "./pages/TeamMembersPage";
 
 // Component to handle body scroll lock
 function ScrollController() {
@@ -64,10 +64,13 @@ function AppContent() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/home" element={<Home />} />
+          <Route path="/teams/:teamId" element={<TeamMembersPage />} />
           <Route path="/contacts" element={<ContactsPage />} />
           <Route path="/verify-email-sent" element={<VerifyEmailSent />} />
           {/* <Route path="/verify-email/:token" element={<verifyEmail />} /> */}
+
           <Route path="/card/:id" element={<BusinessCardPage key={location.pathname} />} />
+          <Route path="/team/:teamId/member/:memberId" element={<BusinessCardPage key={location.pathname} />} />
           <Route path="/qr-code-generator" element={<QRCodeGenerator />} />
 
           {/* ✅ NEW: edit is a normal page route */}

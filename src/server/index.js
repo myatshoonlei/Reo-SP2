@@ -14,6 +14,8 @@ import verifyEmailRouter from './routes/verifyEmailRoute.js';
 import profilePhotoUploadRouter from './routes/profilePhotoUpload.js';
 import contactRoutes from './routes/contactRoute.js';
 
+// If you're on Node < 18, uncomment the next line and `npm i node-fetch`
+// import fetch from 'node-fetch';
 
 dotenv.config();
 
@@ -27,8 +29,8 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '50mb' }));
 
-// Register Routes
-app.use('/api', authRoutes); // handles /signup and /login
+// Routes
+app.use('/api', authRoutes);
 app.use('/api/upload-logo', uploadLogoRoute);
 app.use('/api/logo', getLogoRoute);
 app.use('/api/personal-card', personalCardRoute);
@@ -37,9 +39,34 @@ app.use('/api/save-color', saveColorRoute);
 app.use('/api/teamInfo', teamInfoRoutes);
 app.use("/api/templates", templateRoutes);
 app.use('/api/verify-email', verifyEmailRouter);
-app.use("/api/card", cardRoutes); 
+app.use("/api/card", cardRoutes);
 app.use('/api/contacts', contactRoutes);
-app.use('/api/profile-photo', profilePhotoUploadRouter); 
+app.use('/api/profile-photo', profilePhotoUploadRouter);
+
+// ---------- Font CSS proxy (used by html-to-image) ----------
+app.get('/api/proxy/font-css', async (req, res) => {
+  const { url } = req.query;
+  if (!url) return res.status(400).send('Missing url');
+
+  try {
+    // (optional safety) allow only Google Fonts
+    const parsed = new URL(url);
+    if (parsed.host !== 'fonts.googleapis.com') {
+      return res.status(400).send('Only fonts.googleapis.com is allowed');
+    }
+
+    const r = await fetch(url);           // Node 18+ has global fetch
+    if (!r.ok) return res.status(r.status).send('Upstream error');
+    const css = await r.text();
+
+    res.set('Content-Type', 'text/css');
+    res.set('Cache-Control', 'public, max-age=86400'); // cache 1 day
+    res.send(css);
+  } catch (e) {
+    console.error('Font proxy error:', e);
+    res.status(500).send('Proxy failed');
+  }
+});
 
 // Start Server
 app.listen(5000, () => {
