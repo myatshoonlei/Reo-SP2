@@ -9,16 +9,22 @@ export default function ShareModal({ card, onClose, cardRef, TemplateComponent, 
   const buildShareUrl = () => {
     if (shareUrl) return shareUrl;
     if (card.shareUrl) return card.shareUrl;
+    
+    const BASE = import.meta.env.VITE_PUBLIC_BASE_URL || window.location.origin;
 
-    const origin = window.location.origin;
     const teamId = card.team_id ?? card.teamid; // support both shapes
-    if (teamId && card.id) return `${origin}/team/${teamId}/member/${card.id}`;
-    if (card.id) return `${origin}/card/${card.id}`;
+    if (teamId && card.id) return `${BASE}/team/${teamId}/member/${card.id}`;
+    if (card.id) return `${BASE}/card/${card.id}`;
     return window.location.href;
   };
 
   const handleShareLink = async () => {
+
+
+   
+
     const url = buildShareUrl();
+
     const shareData = {
       title: `My Business Card: ${card.fullname || 'Card'}`,
       text: `Check out my digital business card!`,
@@ -43,6 +49,8 @@ export default function ShareModal({ card, onClose, cardRef, TemplateComponent, 
     .slice(0, 80);
 
   const handleDownloadImage = async () => {
+
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
     if (!TemplateComponent) {
       alert("Template component is missing.");
       return;
@@ -84,14 +92,12 @@ export default function ShareModal({ card, onClose, cardRef, TemplateComponent, 
 
       const fontUrl = 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700;800&display=swap';
 
+      const response = await fetch(`${API_URL}/api/proxy/font-css?url=${encodeURIComponent(fontUrl)}`);
+      const fontCss = await response.text();
+
+
       // Graceful fallback if proxy missing
-      let fontCss = "";
-      try {
-        const resp = await fetch(
-          `http://localhost:5000/api/proxy/font-css?url=${encodeURIComponent(fontUrl)}`
-        );
-        if (resp.ok) fontCss = await resp.text();
-      } catch {/* ignore */}
+      
 
       const options = { cacheBust: true, pixelRatio: 2, fontEmbedCSS: fontCss };
 

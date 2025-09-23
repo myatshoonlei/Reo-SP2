@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, createRef, useMemo } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
+
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import CardTile from "../components/CardTile";
@@ -28,6 +29,8 @@ export default function Home() {
     template5: Template5,
     template6: Template6,
   };
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const BASE = import.meta.env.VITE_PUBLIC_BASE_URL || window.location.origin;
 
   const [cards, setCards] = useState([]);
   const tokenRaw = localStorage.getItem("token");
@@ -86,7 +89,7 @@ export default function Home() {
     }
   
     try {
-      const res = await fetch("http://localhost:5000/api/personal-card/all", {
+      const res = await fetch(`${API_URL}/api/personal-card/all`, {
         headers: { Authorization: `Bearer ${token}` },
       });
   
@@ -214,6 +217,30 @@ const handleCloseModal = () => {
   setSearchParams(searchParams);
 };
 
+
+// Delete: call your API then refresh
+const handleDeleteCard = async (c) => {
+  if (!confirm("Delete this card?")) return;
+
+  let token = tokenRaw;
+  if (token?.startsWith('"') && token?.endsWith('"')) token = token.slice(1, -1);
+  if (token?.toLowerCase().startsWith("bearer ")) token = token.slice(7);
+
+  try {
+    const res = await fetch(`${API_URL}/api/personal-card/${c.id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
+    await fetchCards();
+  } catch (e) {
+    console.error(e);
+    alert("Could not delete. Please try again.");
+  }
+};
+
+
+
 const handleSingleDeleteRequest = (card) => {
   setCardToDelete(card);
 };
@@ -228,7 +255,7 @@ const confirmSingleDelete = async () => {
 
   const token = tokenRaw?.replace(/"/g, "");
   try {
-    const res = await fetch(`http://localhost:5000/api/personal-card/${cardToDelete.id}`, {
+    const res = await fetch(`${API_URL}/api/personal-card/${cardToDelete.id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
     });

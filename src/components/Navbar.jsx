@@ -79,7 +79,7 @@ export default function Navbar({ onSave, saving, onClose }) {
 
                 <button
                   onClick={handleLogout}
-                  className="bg-[#1E1E1E] text-white font-outfit px-6 py-2 text-lg rounded-full shadow-md hover:brightness-110 transition"
+                  className="bg-[#1E1E1E] text-white font-outfit px-4 py-2 text-lg rounded-full shadow-md hover:brightness-110 transition"
                 >
                   Log out
                 </button>
@@ -87,7 +87,7 @@ export default function Navbar({ onSave, saving, onClose }) {
             ) : (
               <button
                 onClick={() => navigate("/login")}
-                className="bg-[#1E1E1E] text-white font-outfit px-6 py-2 text-lg rounded-full shadow-md hover:brightness-110 transition"
+                className="bg-[#1E1E1E] text-white font-outfit px-1 py-3 text-lg rounded-full shadow-md hover:brightness-110 transition"
               >
                 Log in / Sign up
               </button>
