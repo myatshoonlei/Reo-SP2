@@ -4,6 +4,8 @@ import Cropper from "react-easy-crop";
 import getCroppedImg from "../utils/cropImage";
 
 const CompanyLogoModal = ({croppedLogo, setCroppedLogo}) => {
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const BASE = import.meta.env.VITE_PUBLIC_BASE_URL || window.location.origin;
   const navigate = useNavigate();
   const location = useLocation();
   const { cardType, cardId, teamId } = location.state || {};
@@ -139,7 +141,7 @@ useEffect(() => {
           return;
         }
 
-        const res = await fetch(`http://localhost:5000/api/get-logo/${effectiveCardId}`, {
+        const res = await fetch(`${API_URL}/api/get-logo/${effectiveCardId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -155,7 +157,7 @@ useEffect(() => {
           }
         } else if (res.status === 404) {
           // Optional fallback: read from personal-card endpoint
-          const cardRes = await fetch(`http://localhost:5000/api/personal-card/${effectiveCardId}`, {
+          const cardRes = await fetch(`${API_URL}/api/personal-card/${effectiveCardId}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (cardRes.ok) {
@@ -262,7 +264,7 @@ useEffect(() => {
         blobSize: blob.size 
       });
 
-      const uploadRes = await fetch("http://localhost:5000/api/upload-logo", {
+      const uploadRes = await fetch(`${API_URL}/api/upload-logo`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
