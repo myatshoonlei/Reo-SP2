@@ -13,13 +13,24 @@ const cleanPhone = (v) =>
   clean(v).replace(/[^\d+()\-.\s]/g, "").replace(/\s+/g, " ").trim();
 
 /* ---------- utility to build the public URL ---------- */
+/* ---------- utility to build the public URL ---------- */
 function getBasePublicUrl(req) {
-  // Prefer an env var; fall back to the request's origin/host.
-  // e.g. PUBLIC_BASE_URL=https://myapp.com
-  return (
-    process.env.PUBLIC_BASE_URL ||
-    `${req.protocol}://${req.get("host")}` // http(s)://localhost:5000
-  );
+  // Always prefer an explicit public URL (no trailing slash)
+  if (process.env.PUBLIC_BASE_URL) {
+    return process.env.PUBLIC_BASE_URL.replace(/\/+$/, "");
+  }
+
+  // Respect proxies if present (useful in prod behind Nginx)
+  const proto = (req.headers["x-forwarded-proto"] || req.protocol || "http");
+  const host  = (req.headers["x-forwarded-host"]  || req.get("host") || "");
+
+  // DEV fallback: if the request hit the API on :5000, serve the SPA on :5173
+  if (/localhost:5000$/i.test(host)) {
+    return `${proto}://localhost:5173`;
+  }
+
+  // Otherwise use whatever host handled the request
+  return `${proto}://${host}`;
 }
 
 /* ---------- batch generator (for internal reuse) ---------- */
@@ -133,6 +144,52 @@ router.get("/first", verifyToken, async (req, res) => {
   }
 });
 
+// GET /api/teamInfo/:teamId/members  -> members + team styling (template/colors/logo)
+router.get("/:teamId/members", verifyToken, async (req, res) => {
+  const { teamId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const q = `
+      SELECT
+        m.id,
+        m.team_id,
+        m.fullname,
+        m.job_title,
+        m.email,
+        m.phone_number,
+        m.company_name,
+        m.qr,
+
+        tc.template_id,
+        tc.primary_color,
+        tc.secondary_color,
+        tc.logo,
+        tc.company_name     AS team_company_name,
+
+        t.component_key
+      FROM team_members m
+      JOIN team_cards   tc ON tc.teamid = m.team_id AND tc.userid = $2
+      LEFT JOIN template t ON t.id = tc.template_id
+      WHERE m.team_id = $1
+      ORDER BY m.id DESC
+    `;
+    const r = await pool.query(q, [teamId, userId]);
+
+    const rows = r.rows.map(row => {
+      if (row.logo) {
+        row.logo = Buffer.from(row.logo).toString("base64"); // match personal /all behavior
+      }
+      return row;
+    });
+
+    res.json({ data: rows });
+  } catch (e) {
+    console.error("members-with-styling error:", e);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 /* ---------- PUT /api/teamInfo/:memberId/qr (keep your single-member route) ---------- */
 router.put("/:memberId/qr", verifyToken, async (req, res) => {
   const { memberId } = req.params;
@@ -149,5 +206,85 @@ router.put("/:memberId/qr", verifyToken, async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
+// PUBLIC: GET /api/teamInfo/public/:teamId/member/:memberId
+router.get("/public/:teamId/member/:memberId", async (req, res) => {
+  try {
+    // sanitize (keeps only digits)
+    const teamId = parseInt(String(req.params.teamId).replace(/[^\d]/g, ""), 10);
+    const memberId = parseInt(String(req.params.memberId).replace(/[^\d]/g, ""), 10);
+
+    if (!Number.isFinite(teamId) || !Number.isFinite(memberId)) {
+      return res.status(400).json({ error: "Invalid IDs" });
+    }
+
+    const q = `
+      SELECT
+        m.id, m.team_id, m.fullname, m.job_title, m.email, m.phone_number, m.company_name, m.qr,
+        tc.template_id, tc.primary_color, tc.secondary_color, tc.logo,
+        t.component_key
+      FROM team_members m
+      JOIN team_cards   tc ON tc.teamid = m.team_id
+      LEFT JOIN template t  ON t.id = tc.template_id
+      WHERE m.team_id = $1 AND m.id = $2
+      LIMIT 1
+    `;
+    const r = await pool.query(q, [teamId, memberId]);
+    if (!r.rows.length) return res.status(404).json({ error: "Member not found" });
+
+    const row = r.rows[0];
+    if (row.logo) row.logo = Buffer.from(row.logo).toString("base64");
+    return res.json({ data: row });
+  } catch (e) {
+    console.error("public member error:", e);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+
+// GET /api/teamInfo/counts  -> [{ team_id, count }]
+router.get("/counts", verifyToken, async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const q = `
+      SELECT m.team_id, COUNT(*)::int AS count
+      FROM team_members m
+      WHERE m.team_id IN (SELECT teamid FROM team_cards WHERE userid = $1)
+      GROUP BY m.team_id
+    `;
+    const r = await pool.query(q, [userId]);
+    res.json({ data: r.rows });
+  } catch (e) {
+    console.error("counts error:", e);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// DELETE /api/teamInfo/member/:id  -> delete one member (must belong to a team owned by user)
+router.delete("/member/:id", verifyToken, async (req, res) => {
+  const { id } = req.params;           // member id (int)
+  const userId = req.user.id;
+
+  try {
+    // verify that this member belongs to a team owned by the authed user
+    const check = await pool.query(
+      `SELECT m.id
+         FROM team_members m
+         JOIN team_cards tc ON tc.teamid = m.team_id
+        WHERE m.id = $1 AND tc.userid = $2`,
+      [id, userId]
+    );
+    if (!check.rowCount) {
+      return res.status(404).json({ error: "Member not found or unauthorized" });
+    }
+
+    await pool.query(`DELETE FROM team_members WHERE id = $1`, [id]);
+    return res.json({ message: "Member deleted" });
+  } catch (e) {
+    console.error("delete member error:", e);
+    return res.status(500).json({ error: "Server error while deleting member" });
+  }
+});
+
 
 export default router;
