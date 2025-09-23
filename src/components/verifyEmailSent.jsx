@@ -11,10 +11,11 @@ export default function VerifyEmailSent() {
 
   useEffect(() => {
     if (!email) return;
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`http://10.120.200.158:5000/api/check-verification?email=${email}`);
+        const res = await fetch(`${API_URL}/api/check-verification?email=${email}`);
         const text = await res.text(); // get raw response
         try {
           const data = JSON.parse(text); // try parsing

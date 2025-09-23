@@ -7,12 +7,15 @@ import { jwtDecode } from "jwt-decode";
 export default function Login() {
   const navigate = useNavigate();
 
+  const API_URL = import.meta.env.VITE_API_URL;
+
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const handleLogin = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/login", {
+      const res = await fetch(`${API_URL}/api/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -101,7 +104,7 @@ export default function Login() {
 
 
             try {
-              const res = await fetch("http://localhost:5000/api/google-auth", {
+              const res = await fetch(`${API_URL}/api/google-auth`, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",

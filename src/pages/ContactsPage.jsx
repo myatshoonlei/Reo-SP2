@@ -10,6 +10,9 @@ import ContactTile from "../components/ContactTile";
 
 
 export default function ContactsPage() {
+
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const BASE = import.meta.env.VITE_PUBLIC_BASE_URL || window.location.origin;
   const navigate = useNavigate();
   const [contacts, setContacts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -29,7 +32,7 @@ export default function ContactsPage() {
       }
 
       try {
-        const res = await fetch("http://localhost:5000/api/contacts", {
+        const res = await fetch(`${API_URL}/api/contacts`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -76,9 +79,9 @@ export default function ContactsPage() {
 
 
   return (
-    <div className="min-h-screen font-inter bg-gradient-to-b from-[#F3F9FE] to-[#C5DBEC]">
+    <div className="min-h-[100dvh] font-inter bg-gradient-to-b from-[#F3F9FE] to-[#C5DBEC]">
       <Navbar />
-      <div className="flex pt-24">
+      <div className="flex flex-col md:flex-row pt-24">
         <Sidebar activePage="Contacts" />
         <main className="w-4/5 p-6">
           <div className="flex justify-between items-center mb-6">
@@ -87,7 +90,7 @@ export default function ContactsPage() {
           </div>
 
           {/* Search Bar */}
-          <div className="relative mb-8">
+          <div className="relative mb-6">
             <input
               type="text"
               placeholder="Search by name, email, or company..."
@@ -118,7 +121,7 @@ export default function ContactsPage() {
                     if (!window.confirm("Are you sure you want to delete this contact?")) return;
 
                     try {
-                      const res = await fetch(`http://localhost:5000/api/contacts/${c.id}`, {
+                      const res = await fetch(`${API_URL}/api/contacts/${c.id}`, {
                         method: "DELETE",
                         headers: { Authorization: `Bearer ${token}` },
                       });

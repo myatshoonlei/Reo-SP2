@@ -7,6 +7,8 @@ let persistedSecondaryColor = null;
 let persistedSecondaryCustomColor = { r: 0, g: 0, b: 0, a: 1 };
 
 export default function BackgroundColorModal() {
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const BASE = import.meta.env.VITE_PUBLIC_BASE_URL || window.location.origin;
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -217,7 +219,7 @@ export default function BackgroundColorModal() {
         teamId: flow === "Team" ? effectiveTeamId : undefined,
       };
 
-      const res = await fetch("http://localhost:5000/api/save-color", {
+      const res = await fetch(`${API_URL}/api/save-color`, {
              method: "POST",
              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
              body: JSON.stringify(payload),

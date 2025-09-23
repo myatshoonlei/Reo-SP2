@@ -6,7 +6,10 @@ export default function ShareModal({ card, onClose, cardRef, TemplateComponent }
   if (!card) return null;
 
   const handleShareLink = async () => {
-    const url = `${window.location.origin}/card/${card.id}`;
+
+    
+    const BASE = import.meta.env.VITE_PUBLIC_BASE_URL || window.location.origin;
+    const url = `${BASE}/card/${card.id}`;
     const shareData = {
       title: `My Business Card: ${card.fullname}`,
       text: `Check out my digital business card!`,
@@ -21,6 +24,8 @@ export default function ShareModal({ card, onClose, cardRef, TemplateComponent }
   };
 
   const handleDownloadImage = async () => {
+
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
     if (!TemplateComponent) {
       return alert("Template component is missing.");
     }
@@ -58,7 +63,7 @@ export default function ShareModal({ card, onClose, cardRef, TemplateComponent }
 
       // Font fetching logic (same as before to prevent CORS errors)
       const fontUrl = 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700;800&display=swap';
-      const response = await fetch(`http://localhost:5000/api/proxy/font-css?url=${encodeURIComponent(fontUrl)}`);
+      const response = await fetch(`${API_URL}/api/proxy/font-css?url=${encodeURIComponent(fontUrl)}`);
       const fontCss = await response.text();
       const options = { cacheBust: true, pixelRatio: 2, fontEmbedCSS: fontCss };
 

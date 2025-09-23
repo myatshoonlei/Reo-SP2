@@ -297,7 +297,7 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
   };
 
   return (
-    <div className="min-h-screen font-inter bg-gradient-to-b from-[#F3F9FE] to-[#C5DBEC]">
+    <div className="min-h-[100dvh] -screen font-inter bg-gradient-to-b from-[#F3F9FE] to-[#C5DBEC]">
       {/* ✅ Navbar at the very top */}
       <Navbar onSave={saveAll} saving={saving} onClose={closeModal} />
   
@@ -307,8 +307,10 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
         <Sidebar activePage="Edit Card" />
   
         {/* Main content on the right */}
-        
-        <div className="flex-1 px-6 pt-4 h-[calc(100vh-80px)] overflow-hidden w-full md:w-4/5 p-6">
+
+        <div className="flex-1 w-full md:w-4/5 px-4 sm:px-6 pt-4 md:pt-6 pb-6
+                min-h-[100dvh] overflow-y-auto -webkit-overflow-scrolling-touch">
+
           {/* alerts */}
           {(err || ok) && (
             <div className="pt-3">
@@ -324,7 +326,8 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
           )}
   
           {/* body: form + phone */}
-          <div className="grid grid-cols-11 gap-4 items-center h-full">
+          <div className="grid grid-cols-11 gap-4 items-start">
+
             {/* form (left) */}
             <main className="col-span-11 md:col-span-8 lg:col-span-7 h-full">
               <div className="rounded-2xl bg-white shadow-sm border border-[#d6e6fb]">
@@ -376,7 +379,7 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
             {/* right phone preview */}
           <aside className="col-span-11 md:col-span-4 self-center justify-center">
             {/* keep it visible and start near the top of the page */}
-            <div className="sticky top-24 pr-2">
+            <div className="md:sticky md:top-24 pr-2">
               {/* perspective on parent */}
               <div className="relative w-full max-w-sm mx-auto" style={{ perspective: "1000px" }}>
                 <div className="text-sm text-center mb-2 text-[#0b2447] opacity-80">
