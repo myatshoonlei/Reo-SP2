@@ -160,23 +160,72 @@ router.get("/:id", verifyToken, async (req, res) => {
   }
 });
 
-// (Optional) ✅ List all team cards for the current user
+// GET /api/teamcard  -> include created_at for FE sorting
 router.get("/", verifyToken, async (req, res) => {
   const userId = req.user.id;
   try {
-    const result = await pool.query(
-      `SELECT teamid, company_name
-         FROM team_cards
-        WHERE userid = $1
-        ORDER BY teamid DESC`,
-      [userId]
-    );
-    res.json({ data: result.rows });
+    const q = `
+      SELECT teamid, company_name, primary_color, secondary_color, logo, created_at
+      FROM team_cards
+      WHERE userid = $1
+      ORDER BY created_at DESC, teamid DESC
+    `;
+    const r = await pool.query(q, [userId]);
+
+    // Convert Buffer -> base64 so FE can put it in an <img>
+    const rows = r.rows.map(row => ({
+      ...row,
+      logo: row.logo ? Buffer.from(row.logo).toString("base64") : null,
+    }));
+
+    res.json({ data: rows });
   } catch (err) {
     console.error("❌ List team cards error:", err.message);
     res.status(500).json({ error: "Server error" });
   }
 });
 
+// DELETE /api/teamcard/:id  -> delete team + all its members (INT ids)
+router.delete("/:id", verifyToken, async (req, res) => {
+  const userId = req.user.id;                // whatever type it is in your table
+  const teamId = Number(req.params.id);      // <- ensure it's numeric
+
+  if (!Number.isInteger(teamId)) {
+    return res.status(400).json({ error: "Invalid team id" });
+  }
+
+  try {
+    await pool.query("BEGIN");
+
+    // 1) delete members for this team
+    const delMembers = await pool.query(
+      "DELETE FROM team_members WHERE team_id = $1::int",
+      [teamId]
+    );
+
+    // 2) delete the team row scoped to this user
+    const delTeam = await pool.query(
+      "DELETE FROM team_cards WHERE teamid = $1::int AND userid = $2 RETURNING teamid",
+      [teamId, userId]
+    );
+
+    if (!delTeam.rowCount) {
+      await pool.query("ROLLBACK");
+      return res.status(404).json({ error: "Team not found or unauthorized" });
+    }
+
+    await pool.query("COMMIT");
+    res.json({
+      ok: true,
+      teamid: teamId,
+      removedMembers: delMembers.rowCount,
+      message: "Team deleted successfully",
+    });
+  } catch (e) {
+    await pool.query("ROLLBACK");
+    console.error("❌ Delete team error:", e);
+    res.status(500).json({ error: "Server error while deleting team" });
+  }
+});
 
 export default router;
