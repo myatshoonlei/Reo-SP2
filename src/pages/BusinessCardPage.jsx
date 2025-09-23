@@ -29,6 +29,9 @@ const templateMap = {
 
 
 const BusinessCardPage = () => {
+
+    const BASE = import.meta.env.VITE_PUBLIC_BASE_URL || window.location.origin;
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
     const { id } = useParams();
     const navigate = useNavigate();
     const [card, setCard] = useState(null);
@@ -60,7 +63,7 @@ const BusinessCardPage = () => {
             try {
                 // Send auth token if it exists so the backend can check ownership
                 const headers = token ? { Authorization: `Bearer ${token.replace(/"/g, "")}` } : {};
-                const res = await fetch(`http://localhost:5000/api/card/${id}`, { headers });
+                const res = await fetch(`${API_URL}/api/card/${id}`, { headers });
 
                 if (!res.ok) throw new Error("Card not found");
 
@@ -90,7 +93,7 @@ const BusinessCardPage = () => {
         const token = (localStorage.getItem("token") || "").replace(/"/g, "");
 
         try {
-            const res = await fetch(`http://localhost:5000/api/contacts/add`, {
+            const res = await fetch(`${API_URL}/api/contacts/add`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ contactCardId: card.id })
@@ -190,7 +193,7 @@ END:VCARD`;
             let fontCss = '';
             try {
                 const fontUrl = "https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700;800&display=swap";
-                const response = await fetch(`http://localhost:5000/api/proxy/font-css?url=${encodeURIComponent(fontUrl)}`);
+                const response = await fetch(`${BASE}/api/proxy/font-css?url=${encodeURIComponent(fontUrl)}`);
                 if (response.ok) fontCss = await response.text();
             } catch (e) {
                 console.warn('Could not fetch fonts, proceeding without them.');

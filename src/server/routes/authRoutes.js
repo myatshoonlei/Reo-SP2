@@ -14,6 +14,7 @@ const router = express.Router();
 
 // Signup Route
 router.post('/signup', async (req, res) => {
+  const BASE = process.env.BASE_URL || "http://localhost:5173";
   const { fullname, email, password } = req.body;
 
   try {
@@ -46,7 +47,7 @@ router.post('/signup', async (req, res) => {
 
 
 
-    const link = `http://localhost:5173/verify-email/${token}?redirect=true`;
+    const link = `${BASE}/verify-email/${token}?redirect=true`;
     await sendVerificationEmail(email, link);
 
 
@@ -200,7 +201,7 @@ router.post('/resend-verification', async (req, res) => {
         { expiresIn: '15m' }
       );
 
-      const link = `http://localhost:5173/verify-email/${token}?redirect=true`;
+      const link = `${BASE}/verify-email/${token}?redirect=true`;
 
       await sendVerificationEmail(email, link);
 
@@ -216,7 +217,7 @@ router.post('/resend-verification', async (req, res) => {
       { expiresIn: '15m' }
     );
 
-    const link = `http://localhost:5173/verify-email/${token}?redirect=true`;
+    const link = `${BASE}/verify-email/${token}?redirect=true`;
     await sendVerificationEmail(email, link);
 
     return res.json({ message: 'Verification email sent. Please check your inbox.' });

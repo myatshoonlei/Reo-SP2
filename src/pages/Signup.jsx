@@ -7,6 +7,7 @@ import { jwtDecode } from "jwt-decode";
 
 export default function Signup() {
   const navigate = useNavigate();
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
   // 👇 State for form inputs
   const [fullName, setFullName] = useState("");
@@ -33,7 +34,7 @@ export default function Signup() {
       return alert("Password must be at least 8 characters.");
     }
     try {
-      const res = await fetch("http://localhost:5000/api/signup", {
+      const res = await fetch(`${API_URL}/api/signup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -137,7 +138,7 @@ export default function Signup() {
             const { name, email, picture } = decoded;
 
             try {
-              const res = await fetch("http://localhost:5000/api/google-auth", {
+              const res = await fetch(`${API_URL}/api/google-auth`, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
