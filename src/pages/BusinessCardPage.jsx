@@ -18,22 +18,22 @@ import Template6 from '../components/templates/Template6';
 // Maps template names from the database to the actual imported React components.
 // The names ('Template1', 'Template2') should match what's stored in your database.
 const templateMap = {
-    Template1: Template1,
-    Template2: Template2,
-    Template3: Template3,
-    Template4: Template4,
-    Template5: Template5,
-    Template6: Template6,
-    // Add other templates here as needed
-};
+    Template1, Template2, Template3, Template4, Template5, Template6,
+    template1: Template1, template2: Template2, template3: Template3,
+    template4: Template4, template5: Template5, template6: Template6,
+  };
 
 
 const BusinessCardPage = () => {
 
+
     const BASE = import.meta.env.VITE_PUBLIC_BASE_URL || window.location.origin;
     const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-    const { id } = useParams();
+  // 👇 accept BOTH personal and team url params
+    const { id, teamId, memberId } = useParams();
+
     const navigate = useNavigate();
+
     const [card, setCard] = useState(null);
     const [isMobileDevice, setIsMobileDevice] = useState(false);
     const [isOwner, setIsOwner] = useState(false);
@@ -48,38 +48,82 @@ const BusinessCardPage = () => {
     const closeNotice = () => setNotice(null);
 
     useEffect(() => {
-
-        const cached = localStorage.getItem(`saved_card_${id}`);
-        if (cached === "1") {
-            setIsAlreadySaved(true);
-        }
-        // This check runs once after the component mounts to determine the device type.
+        // detect device + auth once
         setIsMobileDevice(/Mobi|Android/i.test(navigator.userAgent));
-
-        const token = localStorage.getItem("token");
+        const rawToken = localStorage.getItem("token");
+        const token = rawToken ? rawToken.replace(/"/g, "") : "";
         setIsLoggedIn(!!token);
 
-        const fetchCard = async () => {
-            try {
-                // Send auth token if it exists so the backend can check ownership
-                const headers = token ? { Authorization: `Bearer ${token.replace(/"/g, "")}` } : {};
-                const res = await fetch(`${API_URL}/api/card/${id}`, { headers });
 
-                if (!res.ok) throw new Error("Card not found");
+        async function fetchPersonal(cardId) {
+  
+   // Send auth token if it exists so the backend can check ownership
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            const res = await fetch(`${API_URL}/api/card/${cardId}`, { headers });
+            if (!res.ok) throw new Error("Card not found");
+            const data = await res.json();
 
-                const data = await res.json();
-                // The backend now sends a structured response
-                setCard(data.card);
-                setIsOwner(data.isOwner);
-                setIsAlreadySaved(data.isAlreadySaved);
+            setCard(data.card);                 // same shape you already use
+            setIsOwner(data.isOwner);
+            setIsAlreadySaved(data.isAlreadySaved);
 
-            } catch (err) {
-                console.error("Error loading card:", err);
+            // cache flag for quick UI
+            localStorage.setItem(`saved_card_${cardId}`, data.isAlreadySaved ? "1" : "0");
+        }
+
+        async function fetchTeam(tIdRaw, mIdRaw) {
+            const tId = String(tIdRaw).replace(/[^\d]/g, "");
+            const mId = String(mIdRaw).replace(/[^\d]/g, "");
+            const url = `http://localhost:5000/api/teamInfo/public/${tId}/member/${mId}`;
+          
+            const res = await fetch(url);
+            if (res.status === 404) {
+              setNotice("This team member link doesn't exist or was deleted.", "error", "Not Found");
+              return;
             }
-        };
+            if (!res.ok) {
+              throw new Error(`Fetch failed (${res.status})`);
+            }
+          
+            const { data } = await res.json();
+            const normalized = {
+              id: data.id,
+              team_id: data.team_id,
+              fullname: data.fullname,
+              email: data.email,
+              company_name: data.company_name,
+              job_title: data.job_title,
+              phone_number: data.phone_number,
+              qr: data.qr || null,
+              template: data.component_key || "template1",
+              primary_color: data.primary_color,
+              secondary_color: data.secondary_color,
+              logo: data.logo ? `data:image/png;base64,${data.logo}` : null,
+              kind: "team",
+            };
+          
+            setCard(normalized);
+            setIsOwner(false);
+          
+            const savedKey = `saved_team_${tId}_${mId}`;
+            setIsAlreadySaved(localStorage.getItem(savedKey) === "1");
+          }          
 
-        fetchCard();
-    }, [id]);
+        (async () => {
+            try {
+            if (id) {
+                // /card/:id
+                await fetchPersonal(id);
+            } else if (teamId && memberId) {
+                // /team/:teamId/member/:memberId
+                await fetchTeam(teamId, memberId);
+            }
+            } catch (err) {
+            console.error("Error loading card:", err);
+            }
+        })();
+        }, [id, teamId, memberId]);
+
 
     const handleSaveToReo = async () => {
         if (!isLoggedIn) {

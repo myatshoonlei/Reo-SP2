@@ -1,5 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { ChevronLeft } from "lucide-react";
+
 
 export default function Navbar({ onSave, saving, onClose }) {
   const navigate = useNavigate();
@@ -62,19 +64,6 @@ export default function Navbar({ onSave, saving, onClose }) {
           </>
         ) : (
           <>
-            {!isHomePage && !isContactsPage && (
-              <>
-                <button
-                  className="text-reoBlue font-medium hover:underline"
-                  onClick={() => navigate("/home")}
-                >
-                  Home
-                </button>
-                <button className="text-reoBlue font-medium hover:underline">
-                  Features
-                </button>
-              </>
-            )}
 
             {authed ? (
               <div className="flex items-center gap-3">
