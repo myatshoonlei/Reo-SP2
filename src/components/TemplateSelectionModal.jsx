@@ -200,7 +200,7 @@ export default function TemplateSelectionModal() {
       <div className="fixed inset-0 z-50 flex justify-center items-center bg-white/30 backdrop-blur-sm">
         <div className="bg-white rounded-xl p-8 shadow-xl">Loading…</div>
       </div>
-    )
+    );
   }
 
   const templateMap = {
@@ -251,7 +251,6 @@ export default function TemplateSelectionModal() {
       if (flow === "team") {
         const teamId = getTeamId()
         if (!teamId) throw new Error("Missing teamId for team flow")
-
         await fetch(`${API_URL}/api/teamcard/${teamId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -271,7 +270,6 @@ export default function TemplateSelectionModal() {
           headers: { Authorization: `Bearer ${token}` },
         })
         const freshMember = (await freshRes.json()).data
-
         navigate("/create/preview", {
           state: {
             cardType: "team",
@@ -295,7 +293,6 @@ export default function TemplateSelectionModal() {
 
         return
       }
-
       const payload = {
         id: cardInfo.id,
         fullname: cardInfo.fullname,
@@ -309,15 +306,15 @@ export default function TemplateSelectionModal() {
         secondaryColor: cardInfo.secondary_color,
         logo: compressedLogo,
         qr: qrDataUrl,
-      }
+      };
 
       const res = await fetch(`${API_URL}/api/personal-card`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),
         cache: "no-store",
-      })
-      if (!res.ok) throw new Error(`Save failed: ${res.status}`)
+      });
+      if (!res.ok) throw new Error(`Save failed: ${res.status}`);
 
       navigate("/create/preview", {
         state: {
@@ -383,5 +380,5 @@ export default function TemplateSelectionModal() {
         </div>
       </div>
     </div>
-  )
+  );
 }

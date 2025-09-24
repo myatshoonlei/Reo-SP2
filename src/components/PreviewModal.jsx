@@ -78,7 +78,7 @@ export default function PreviewModal() {
     primaryColor,
     secondaryColor,
     logoUrl: card.logoUrl ?? croppedLogo ?? card.logo,
-  })
+  });
 
   const handleBack = () => {
     // go back to Template Selection (Step 5), preserve state
@@ -321,5 +321,5 @@ export default function PreviewModal() {
         </div>
       </div>
     </div>
-  )
+  );
 }

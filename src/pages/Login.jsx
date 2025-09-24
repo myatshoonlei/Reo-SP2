@@ -83,7 +83,6 @@ export default function Login() {
         </div>
 
         <div className="text-sm text-gray-500 mb-4">Or</div>
-
         {/* Google Button */}
         <div className="flex justify-center mb-4">
           <GoogleLogin
@@ -137,7 +136,6 @@ export default function Login() {
             }}
           />
         </div>
-
         <p className="text-sm text-black mb-6">
           new to Reo?{" "}
           <Link to="/signup" className="text-blue-600 hover:underline">

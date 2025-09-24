@@ -8,8 +8,6 @@ import sgMail from '@sendgrid/mail';
 import sendVerificationEmail from '../../utils/sendVerificationEmail.js';
 import { verifyEmail } from '../../utils/verifyEmail.js';
 
-
-
 const app = express();
 
 app.use(cors({
@@ -29,7 +27,6 @@ const router = express.Router();
 // Signup Route
 router.post('/signup', async (req, res) => {
   const BASE = process.env.VITE_PUBLIC_BASE_URL || "http://localhost:5173";
-
   const { fullname, email, password } = req.body;
 
   try {
@@ -141,7 +138,6 @@ router.post('/google-auth', async (req, res) => {
     res.status(500).json({ error: 'Something went wrong with Google auth' });
   }
 });
-
 
 router.post('/verify-email-check', async (req, res) => {
   const { email } = req.body;
