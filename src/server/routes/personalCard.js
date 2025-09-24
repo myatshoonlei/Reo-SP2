@@ -143,28 +143,28 @@ router.get("/all", verifyToken, async (req, res) => {
   }
 });
 
-// // ✅ Get personal card details
-// router.get("/details", verifyToken, async (req, res) => {
-//   try {
-//     const userId = req.user.id;
-//     const result = await pool.query(
-//       `SELECT p.* FROM personal_cards p WHERE p.user_id = $1 ORDER BY p.id DESC LIMIT 1`,
-//       [userId]
-//     );
+// ✅ Get personal card details
+router.get("/details", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const result = await pool.query(
+      `SELECT p.* FROM personal_cards p WHERE p.user_id = $1 ORDER BY p.id DESC LIMIT 1`,
+      [userId]
+    );
 
-//     const card = result.rows[0];
-//     if (!card) return res.status(404).json({ error: "Card not found" });
+    const card = result.rows[0];
+    if (!card) return res.status(404).json({ error: "Card not found" });
 
-//     if (card.logo) {
-//       card.logo = Buffer.from(card.logo).toString("base64");
-//     }
+    if (card.logo) {
+      card.logo = Buffer.from(card.logo).toString("base64");
+    }
 
-//     res.json(card);
-//   } catch (err) {
-//     console.error("❌ Fetch error:", err.message);
-//     res.status(500).json({ error: "Failed to fetch card" });
-//   }
-// });
+    res.json(card);
+  } catch (err) {
+    console.error("❌ Fetch error:", err.message);
+    res.status(500).json({ error: "Failed to fetch card" });
+  }
+});
 
 // ✅ Add the GET route for profile photo retrieval
 router.get('/:cardId/profile-photo', verifyToken, async (req, res) => {

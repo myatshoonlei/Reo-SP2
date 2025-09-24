@@ -1,10 +1,22 @@
+import cors from 'cors';
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../db.js';
 import dotenv from 'dotenv';
+import sgMail from '@sendgrid/mail';
+import sendVerificationEmail from '../../utils/sendVerificationEmail.js';
+import { verifyEmail } from '../../utils/verifyEmail.js';
 
+const app = express();
 
+app.use(cors({
+  origin: ['http://localhost:5173',"https://come-pastor-considered-ends.trycloudflare.com"],
+  credentials: true
+}));
+app.use(express.json());
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 dotenv.config();
 
@@ -14,7 +26,7 @@ const router = express.Router();
 
 // Signup Route
 router.post('/signup', async (req, res) => {
-  const BASE = process.env.BASE_URL || "http://localhost:5173";
+  const BASE = process.env.VITE_PUBLIC_BASE_URL || "http://localhost:5173";
   const { fullname, email, password } = req.body;
 
   try {
@@ -124,6 +136,22 @@ router.post('/google-auth', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Something went wrong with Google auth' });
+  }
+});
+
+router.post('/verify-email-check', async (req, res) => {
+  const { email } = req.body;
+  console.log("🔍 Kickbox check for:", email); // This should appear in terminal
+
+  try {
+    const isValid = await verifyEmail(email); // your Kickbox-style function
+    if (!isValid) {
+      return res.status(400).json({ error: 'Please input a valid Gmail account.' });
+    }
+    res.json({ message: 'Email is valid.' });
+  } catch (err) {
+    console.error("❌ Kickbox error:", err);
+    res.status(500).json({ error: 'Server error during email verification.' });
   }
 });
 

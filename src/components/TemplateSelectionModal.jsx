@@ -1,110 +1,88 @@
-import { useEffect, useState, useMemo } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import Template1 from "./templates/Template1";
-import Template2 from "./templates/Template2";
-import Template3 from "./templates/Template3";
-import Template4 from "./templates/Template4";
-import Template5 from "./templates/Template5";
-import Template6 from "./templates/Template6";
+"use client"
 
-import { getLogoSrc } from "../utils/logoUtils";
-import { getPublicCardUrl } from "../utils/shareUrl";
-import { compressImage, fileToBase64 } from "../utils/imageUtils";
+import { useEffect, useState } from "react"
+import { useNavigate, useLocation } from "react-router-dom"
+import Template1 from "./templates/Template1"
+import Template2 from "./templates/Template2"
+import Template3 from "./templates/Template3"
+import Template4 from "./templates/Template4"
+import Template5 from "./templates/Template5"
+import Template6 from "./templates/Template6"
+
+import { getLogoSrc } from "../utils/logoUtils"
+import { compressImage, fileToBase64 } from "../utils/imageUtils"
 
 export default function TemplateSelectionModal() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-  const BASE = import.meta.env.VITE_PUBLIC_BASE_URL || window.location.origin;
+  const navigate = useNavigate()
+  const location = useLocation()
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000"
+  const BASE = import.meta.env.VITE_PUBLIC_BASE_URL || window.location.origin
 
-
-
-  const [userData, setUserData] = useState(null);
-  const [templates, setTemplates] = useState([]);
-  const [cardInfo, setCardInfo] = useState(null);
-  const [loadingCard, setLoadingCard] = useState(true);
-  const [loadingTemplates, setLoadingTemplates] = useState(true);
-  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [userData, setUserData] = useState(null)
+  const [templates, setTemplates] = useState([])
+  const [cardInfo, setCardInfo] = useState(null)
+  const [loadingCard, setLoadingCard] = useState(true)
+  const [loadingTemplates, setLoadingTemplates] = useState(true)
+  const [selectedTemplate, setSelectedTemplate] = useState(null)
 
   // ✅ NEW: hold QR as data URL
-  const [qrDataUrl, setQrDataUrl] = useState(null);
-
-  // // Generate QR as soon as we know the card id
-  // useEffect(() => {
-  //   if (!cardInfo?.id) return;
-  //   (async () => {
-  //     try {
-  //       const QRCode = (await import("qrcode")).default;
-  //       const url = getPublicCardUrl(cardInfo.id); // e.g. https://site/card/:id
-  //       const dataUrl = await QRCode.toDataURL(url, { width: 160, margin: 0 });
-  //       setQrDataUrl(dataUrl);
-  //     } catch (e) {
-  //       console.warn("QR generation failed:", e);
-  //       setQrDataUrl(null);
-  //     }
-  //   })();
-  // }, [cardInfo?.id]);
-
-
+  const [qrDataUrl, setQrDataUrl] = useState(null)
 
   // --- utils
   const sanitizeColor = (color) => {
-    if (!color) return "#000000";
-    return String(color).replace(/^['"]+|['"]+$/g, "");
-  };
+    if (!color) return "#000000"
+    return String(color).replace(/^['"]+|['"]+$/g, "")
+  }
 
-  // add near other helpers
   const getFlowType = () => {
-    // preferred explicit flag set earlier in CardType step
-    const stored = (localStorage.getItem("card_type") || localStorage.getItem("flow_type") || "").toLowerCase();
-    if (stored === "team" || stored === "myself") return stored;
+    const stored = (localStorage.getItem("card_type") || localStorage.getItem("flow_type") || "").toLowerCase()
+    if (stored === "team" || stored === "myself") return stored
 
-    // fallbacks if flag wasn't set
-    const hasTeamId = !!localStorage.getItem("team_card_id");
-    const hasPersonalId = !!localStorage.getItem("personal_card_id");
-    if (hasTeamId && !hasPersonalId) return "team";
-    return "myself";
-  };
+    const hasTeamId = !!localStorage.getItem("team_card_id")
+    const hasPersonalId = !!localStorage.getItem("personal_card_id")
+    if (hasTeamId && !hasPersonalId) return "team"
+    return "myself"
+  }
 
   const getTeamId = () =>
     location.state?.teamId ||
     (() => {
-      const raw = localStorage.getItem("team_card_id");
-      return raw && raw !== "null" && raw !== "undefined" ? Number(raw) : null;
-    })();
+      const raw = localStorage.getItem("team_card_id")
+      return raw && raw !== "null" && raw !== "undefined" ? Number(raw) : null
+    })()
 
   const getEffectiveCardId = () => {
-    const raw = localStorage.getItem("personal_card_id");
-    return raw && raw !== "null" && raw !== "undefined" ? Number(raw) : null;
-  };
+    const raw = localStorage.getItem("personal_card_id")
+    return raw && raw !== "null" && raw !== "undefined" ? Number(raw) : null
+  }
 
   // --- fetch templates
   useEffect(() => {
-    (async () => {
+    ;(async () => {
       try {
-        const res = await fetch(`${API_URL}/api/templates`);
-        if (!res.ok) throw new Error("Failed to fetch templates");
-        setTemplates(await res.json());
+        const res = await fetch(`${API_URL}/api/templates`)
+        if (!res.ok) throw new Error("Failed to fetch templates")
+        setTemplates(await res.json())
       } catch (e) {
-        console.error("❌ Template fetch failed:", e);
-        setTemplates([]);
+        console.error("❌ Template fetch failed:", e)
+        setTemplates([])
       } finally {
-        setLoadingTemplates(false);
+        setLoadingTemplates(false)
       }
-    })();
-  }, []);
+    })()
+  }, [])
 
   useEffect(() => {
-    (async () => {
-      const token = localStorage.getItem("token");
-      if (!token) return navigate("/login");
+    ;(async () => {
+      const token = localStorage.getItem("token")
+      if (!token) return navigate("/login")
 
-      const flow = getFlowType();
+      const flow = getFlowType()
 
       try {
         if (flow === "team") {
-          const teamId = getTeamId();
-          if (!teamId) throw new Error("Missing teamId for team flow");
+          const teamId = getTeamId()
+          if (!teamId) throw new Error("Missing teamId for team flow")
 
           const [teamRes, memberRes] = await Promise.all([
             fetch(`${API_URL}/api/teamcard/${teamId}/details`, {
@@ -113,17 +91,16 @@ export default function TemplateSelectionModal() {
             fetch(`${API_URL}/api/teamInfo/first?teamId=${teamId}`, {
               headers: { Authorization: `Bearer ${token}` },
             }),
-          ]);
-          if (!teamRes.ok) throw new Error("Failed to fetch team card details");
-          if (!memberRes.ok) throw new Error("Failed to fetch first team member");
+          ])
+          if (!teamRes.ok) throw new Error("Failed to fetch team card details")
+          if (!memberRes.ok) throw new Error("Failed to fetch first team member")
 
-          const team = (await teamRes.json()).data;
-          const member = (await memberRes.json()).data;
+          const team = (await teamRes.json()).data
+          const member = (await memberRes.json()).data
 
-          // IMPORTANT: id = member.id (not the team id)
           setCardInfo({
-            id: member?.id,                         // ← member id for QR saving
-            team_id: team?.teamid,                  // keep team id separately
+            id: member?.id,
+            team_id: team?.teamid,
             fullname: member?.fullname || "Member Name",
             job_title: member?.job_title || "Title",
             company_name: team?.company_name || member?.company_name || "Company",
@@ -133,24 +110,23 @@ export default function TemplateSelectionModal() {
             logo: getLogoSrc(team?.logo) || "/default-logo.png",
             primary_color: sanitizeColor(team?.primary_color),
             secondary_color: sanitizeColor(team?.secondary_color),
-            qr: member?.qr || qrDataUrl,   // <- use server QR if present
-          });
+            qr: member?.qr || qrDataUrl,
+          })
         } else {
-          // PERSONAL FLOW
           const res = await fetch(`${API_URL}/api/personal-card/details`, {
             headers: { Authorization: `Bearer ${token}` },
-          });
+          })
 
-          let data;
+          let data
           if (res.ok) {
-            data = await res.json();
+            data = await res.json()
           } else {
             const alt = await fetch(`${API_URL}/api/personal-card/all`, {
               headers: { Authorization: `Bearer ${token}` },
               cache: "no-store",
-            });
-            const arr = alt.ok ? await alt.json() : [];
-            data = Array.isArray(arr) && arr.length ? arr[0] : {};
+            })
+            const arr = alt.ok ? await alt.json() : []
+            data = Array.isArray(arr) && arr.length ? arr[0] : {}
           }
 
           setCardInfo({
@@ -164,10 +140,10 @@ export default function TemplateSelectionModal() {
             logo: getLogoSrc(data?.logo) || "/default-logo.png",
             primary_color: sanitizeColor(data?.primary_color),
             secondary_color: sanitizeColor(data?.secondary_color),
-          });
+          })
         }
       } catch (e) {
-        console.error("❌ Building preview failed:", e);
+        console.error("❌ Building preview failed:", e)
         setCardInfo({
           fullname: "Name",
           job_title: "Title",
@@ -177,42 +153,47 @@ export default function TemplateSelectionModal() {
           logo: "/default-logo.png",
           primary_color: "#000000",
           secondary_color: "#ffffff",
-        });
+        })
       } finally {
-        setLoadingCard(false);
+        setLoadingCard(false)
       }
-    })();
-  }, [navigate, location]);
+    })()
+  }, [navigate, location])
 
   // ---------- QR generation (works for both flows) ----------
   useEffect(() => {
-    const flow = getFlowType();
+    const flow = getFlowType()
     const make = async () => {
       try {
-        const { default: QRCode } = await import("qrcode");
-        let url;
+        const { default: QRCode } = await import("qrcode")
+        let url
 
         if (flow === "team") {
-          if (!cardInfo?.team_id || !cardInfo?.id) return;
-          // if server already gave us a QR, keep it
-          if (cardInfo?.qr) { setQrDataUrl(cardInfo.qr); return; }
+          if (!cardInfo?.team_id || !cardInfo?.id) return
+          if (cardInfo?.qr) {
+            setQrDataUrl(cardInfo.qr)
+            return
+          }
+          url = `${BASE}/api/teamInfo/public/${cardInfo.team_id}/member/${cardInfo.id}`
         } else {
-          if (cardInfo?.qr) { setQrDataUrl(cardInfo.qr); return; }
-          url = `${BASE}/card/${cardInfo.id}`;
+          if (cardInfo?.qr) {
+            setQrDataUrl(cardInfo.qr)
+            return
+          }
+          url = `${BASE}/card/${cardInfo.id}`
         }
 
-        const dataUrl = await QRCode.toDataURL(url, { width: 160, margin: 0 });
-        setQrDataUrl(dataUrl);
+        const dataUrl = await QRCode.toDataURL(url, { width: 160, margin: 0 })
+        setQrDataUrl(dataUrl)
       } catch (e) {
-        console.warn("QR generation failed:", e);
-        setQrDataUrl(null);
+        console.warn("QR generation failed:", e)
+        setQrDataUrl(null)
       }
-    };
-    make();
-  }, [cardInfo?.id, cardInfo?.team_id, cardInfo?.qr, location]);
+    }
+    make()
+  }, [cardInfo?.id, cardInfo?.team_id, cardInfo?.qr, location])
 
-
-  const ready = !loadingCard && !loadingTemplates;
+  const ready = !loadingCard && !loadingTemplates
 
   if (!ready) {
     return (
@@ -229,53 +210,47 @@ export default function TemplateSelectionModal() {
     template4: Template4,
     template5: Template5,
     template6: Template6,
-  };
+  }
 
-  // replace your goBack with:
   const goBack = () => {
-    const flow = getFlowType();
+    const flow = getFlowType()
     if (flow === "team") {
-      navigate("/create/upload-info");
+      navigate("/create/upload-info")
     } else {
-      navigate("/create/background-color");
+      navigate("/create/background-color")
     }
-  };
-
+  }
 
   const handleNext = async () => {
-    if (!selectedTemplate) return;
+    if (!selectedTemplate) return
 
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token")
     if (!token) {
-      navigate("/login");
-      return;
+      navigate("/login")
+      return
     }
 
-    // compress logo if needed
-    let compressedLogo = cardInfo.logo;
+    let compressedLogo = cardInfo.logo
     if (compressedLogo && compressedLogo.startsWith("data:image/")) {
       try {
-        const blob = await (await fetch(compressedLogo)).blob();
+        const blob = await (await fetch(compressedLogo)).blob()
         if (blob.size > 100000) {
-          const compressedBlob = await compressImage(blob, 200, 0.7);
-          compressedLogo = `data:image/jpeg;base64,${await fileToBase64(compressedBlob)}`;
+          const compressedBlob = await compressImage(blob, 200, 0.7)
+          compressedLogo = `data:image/jpeg;base64,${await fileToBase64(compressedBlob)}`
         }
       } catch (e) {
-        console.warn("[v0] Logo compression failed:", e);
+        console.warn("[v0] Logo compression failed:", e)
       }
     }
 
-    const templateKey =
-      templates.find((t) => t.id === selectedTemplate)?.component_key || "template1";
+    const templateKey = templates.find((t) => t.id === selectedTemplate)?.component_key || "template1"
 
-    const flow = getFlowType();
+    const flow = getFlowType()
 
     try {
       if (flow === "team") {
-        const teamId = getTeamId();
-        if (!teamId) throw new Error("Missing teamId for team flow");
-
-        // 1) Save template/colors on team card
+        const teamId = getTeamId()
+        if (!teamId) throw new Error("Missing teamId for team flow")
         await fetch(`${API_URL}/api/teamcard/${teamId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -284,24 +259,17 @@ export default function TemplateSelectionModal() {
             primaryColor: cardInfo.primary_color,
             secondaryColor: cardInfo.secondary_color,
           }),
-        });
+        })
 
-        // 2) Generate QRs for all members
         await fetch(`${API_URL}/api/teamInfo/${teamId}/qrs`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        });
+        })
 
-        // 3) Re-fetch the SAME member you’re previewing to get their fresh QR
-        // (we’re using “first” because that’s what you preview; if you later preview a specific member,
-        // call an endpoint like /api/teamInfo/member/:id instead.)
-        const freshRes = await fetch(
-          `${API_URL}/api/teamInfo/first?teamId=${teamId}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const freshMember = (await freshRes.json()).data;
-
-        // 4) Navigate with THAT member’s QR only
+        const freshRes = await fetch(`${API_URL}/api/teamInfo/first?teamId=${teamId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const freshMember = (await freshRes.json()).data
         navigate("/create/preview", {
           state: {
             cardType: "team",
@@ -311,23 +279,20 @@ export default function TemplateSelectionModal() {
               id: freshMember.id,
               fullname: freshMember.fullname,
               job_title: freshMember.job_title,
-              company_name: cardInfo.company_name,          // from team card
+              company_name: cardInfo.company_name,
               email: freshMember.email,
               phone_number: freshMember.phone_number,
               company_address: cardInfo.company_address || "",
               primary_color: cardInfo.primary_color,
               secondary_color: cardInfo.secondary_color,
               logo: compressedLogo,
-              qr: freshMember.qr,                            // ← exact member’s QR
+              qr: freshMember.qr,
             },
           },
-        });
+        })
 
-        return;
+        return
       }
-
-
-      // --- PERSONAL FLOW (unchanged, but no team calls here) ---
       const payload = {
         id: cardInfo.id,
         fullname: cardInfo.fullname,
@@ -362,41 +327,35 @@ export default function TemplateSelectionModal() {
           croppedLogo: compressedLogo,
           qr: qrDataUrl,
         },
-      });
+      })
     } catch (e) {
-      console.error("❌ Error saving card", e);
+      console.error("❌ Error saving card", e)
     }
-  };
-
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex justify-center items-center bg-white/30 backdrop-blur-sm transition-opacity duration-300">
       <div className="bg-white rounded-xl p-8 shadow-xl w-[90vw] max-w-[1200px] max-h-[90vh] flex flex-col">
         <h2 className="font-semibold text-gray-600 text-sm mb-1 text-center">Step 5</h2>
-        <h3 className="text-lg font-bold text-[#0b2447] mb-1 text-center">
-          Choose a template for Your Business Card
-        </h3>
-        <p className="text-xs text-gray-500 mb-4 text-center">
-          Pick a template. You can also customize it later.
-        </p>
+        <h3 className="text-lg font-bold text-[#0b2447] mb-1 text-center">Choose a template for Your Business Card</h3>
+        <p className="text-xs text-gray-500 mb-4 text-center">Pick a template. You can also customize it later.</p>
 
         <div className=" grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 flex-1 overflow-y-auto pr-2 pb-4">
           {templates.map((t) => {
-            const T = templateMap[t.component_key];
+            const T = templateMap[t.component_key]
             return (
               <div
                 key={t.id}
                 onClick={() => setSelectedTemplate(t.id)}
-                className={`cursor-pointer rounded-xl border transition-all flex items-center justify-center ${selectedTemplate === t.id
+                className={`cursor-pointer rounded-xl border transition-all flex items-center justify-center ${
+                  selectedTemplate === t.id
                     ? "border-blue-500 shadow-lg bg-blue-50"
                     : "border-gray-300 hover:border-blue-400 hover:shadow-md hover:bg-blue-50/30"
-                  }`}
+                }`}
               >
-                <div className="w-[330px] sm:w-[330px] lg:w-[400px] flex items-center justify-center rounded-lg overflow-hidden bg-white">
-                  {T && <T {...cardInfo} />}
-                </div>
+                {T && cardInfo && <T {...cardInfo} />}
               </div>
-            );
+            )
           })}
         </div>
 
@@ -410,10 +369,11 @@ export default function TemplateSelectionModal() {
           <button
             disabled={!selectedTemplate}
             onClick={handleNext}
-            className={`px-6 py-2 rounded ${selectedTemplate
+            className={`px-6 py-2 rounded ${
+              selectedTemplate
                 ? "bg-[#0B2447] text-white hover:bg-[#132a58]"
                 : "bg-gray-300 text-gray-500 cursor-not-allowed"
-              }`}
+            }`}
           >
             Next →
           </button>
