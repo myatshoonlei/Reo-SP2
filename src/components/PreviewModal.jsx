@@ -97,6 +97,33 @@ export default function PreviewModal() {
     navigate("/home");
   };
 
+
+  const avatarColors = [
+    "bg-blue-500", "bg-green-500", "bg-pink-500", "bg-purple-500",
+    "bg-indigo-500", "bg-yellow-500", "bg-red-500"
+  ];
+  const colorFor = (seed = "C") => {
+    let h = 0; for (let i = 0; i < seed.length; i++) h = seed.charCodeAt(i) + ((h << 5) - h);
+    return avatarColors[Math.abs(h) % avatarColors.length];
+  };
+
+  // Avatar (image or initial)
+  const Avatar = ({ name, src, size = 40 }) => {
+    const classBase = "rounded-full object-cover ring-2 ring-white/80 shadow";
+    if (src) {
+      return <img src={src} alt={name} style={{ width: size, height: size }} className={classBase} />;
+    }
+    const initial = (name || "C").charAt(0).toUpperCase();
+    return (
+      <div
+        style={{ width: size, height: size }}
+        className={`flex items-center justify-center text-white font-semibold ${classBase} ${colorFor(name)} `}
+      >
+        {initial}
+      </div>
+    );
+  };
+
   return (
     <div className="fixed inset-0 z-[999] flex items-center justify-center">
       {/* backdrop */}
@@ -170,80 +197,87 @@ export default function PreviewModal() {
           </div>
 
           {/* RIGHT: phone preview */}
-          <div className="bg-gradient-to-b from-[#F1F7FE] to-[#DDEBFA] rounded-xl p-4 shadow-sm h-full overflow-hidden">
-            <p className="text-slate-600 text-sm mb-3">
+          <div className="bg-gradient-to-b from-[#F1F7FE] to-[#DDEBFA] rounded-xl p-4 shadow-sm h-full overflow-hidden font-sans">
+            <p className="text-slate-600 text-sm mb-3 text-center">
               This is what people will see when they scan your card.
             </p>
 
             <div className="mx-auto w-[220px]">
               {/* Phone bezel */}
-              <div
-                className="relative mx-auto rounded-[44px] bg-black shadow-2xl"
-                style={{ aspectRatio: "9 / 19" }}
-              >
+              <div className="relative mx-auto rounded-[44px] bg-black shadow-2xl" style={{ aspectRatio: "9 / 19" }}>
                 {/* Screen */}
                 <div className="absolute inset-[10px] rounded-[36px] bg-[#EAF3FB] overflow-hidden">
                   {/* Notch */}
-                  <div className="absolute left-1/2 -translate-x-1/2 top-0 w-28 h-6 bg-black rounded-b-[22px]" />
+                  <div className="absolute left-1/2 -translate-x-1/2 top-0 w-28 h-3 bg-black rounded-b-[22px]" />
 
                   {/* Phone content */}
-                  <div className="pt-7 px-3 pb-3 h-full overflow-auto">
+                  <div className="pt-10 px-3 pb-3 h-full overflow-auto mx auto">
                     {/* Header card */}
-                    <div className="rounded-2xl border border-white/70 bg-white/70 shadow-sm p-2 mb-2">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] font-semibold text-[#2a3b4f] opacity-80">
-                          {p.companyName || "BeLift"}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2 mb-2">
+                    <div className="w-[175px] h-[135px] rounded-xl border border-white/80 bg-white/70 shadow-lg p-4 mb-4 text-center">
+                      {card.profile_photo ? (
                         <img
-                          src={p.logoUrl || p.logo}
-                          alt="avatar"
-                          className="h-10 w-10 rounded-full object-cover ring-2 ring-white/80 shadow"
+                          src={`${card.profile_photo}`}
+                          alt={card.fullname}
+                          className="w-12 h-12 rounded-full object-cover ring-2 ring-white/80 shadow-md mx-auto -mt-2"
                         />
-                        <div>
-                          <div className="text-lg font-bold text-[#1e2a3a] leading-tight">
-                            {p.fullName || "Sofia"}
-                          </div>
-                          <div className="text-xs text-[#5f748d]">
-                            {p.jobTitle || "Accountant"}
-                          </div>
+                      ) : (
+                        <div className="w-14 h-14 rounded-full ring-2 ring-white/80 shadow-md mx-auto -mt-9 bg-gray-300 flex items-center justify-center text-white font-semibold text-2xl">
+                          {(card.fullname || "C").charAt(0).toUpperCase()}
                         </div>
+                      )}
+
+                      <h1 className="text-l font-bold text-[#1e2a3a] mt-4">{p.fullName || "Sofia"}</h1>
+                      <p className="text-sm text-[#5f748d]">{p.jobTitle || "Accountant"}</p>
+                      <div className="flex items-center justify-center gap-2 mt-2 text-[#5f748d]">
+                        <Building size={13} />
+                        <span className="font-semibold">{p.companyName || "BeLift"}</span>
                       </div>
-                      <div className="mt-2 h-4 rounded-lg bg-white/60" />
                     </div>
 
                     {/* Action rows */}
                     {[
-                      {
-                        label: p.phoneNumber || "0661489477",
-                        Icon: Phone,
-                      },
+                      { label: p.phoneNumber || "0661489477", Icon: Phone, type: "link" },
                       { label: "Email Address", Icon: Mail },
-                      { label: "Save Contact", Icon: User },
-                      { label: "Virtual Card", Icon: Scan },
-                      { label: "Save Card to Reo", Icon: Save },
-                    ].map(({ label, Icon }, i) => (
-                      <div
-                        key={i}
-                        className={`mb-2 rounded-xl p-1 flex items-center justify-between border bg-white/0 border-white/60 ${
-                          i % 2 !== 0 ? "flex-row-reverse" : ""
-                        } gap-1`}
+                      { label: "Save Contact", Icon: User, type: "button" },
+                      { label: "Save Business Card", Icon: Scan, type: "button" },
+
+                    ].map(({ label, href, Icon, onClick, type }, i) => {
+                      const content = (
+                        <div className={`rounded-xl p-2 mb-2 flex items-center justify-between border bg-white/70 border-white/80 ${i % 2 !== 0 ? "flex-row-reverse" : ""} gap-1`}>
+                          <div className="flex-1 h-8 rounded-lg  px-3 flex items-center justify-center text-[11px] font-semibold bg-[#1F2937] text-white">
+                            {label}
+                          </div>
+                          <div className="flex items-center justify-center rounded-lg w-8 h-8 bg-[#EDF2F7] border border-white/70">
+                            <Icon strokeWidth={2.5} className="text-[#1F2937] w-4 h-4" />
+                          </div>
+                        </div>
+                      );
+
+
+                      return type === "link" ? (
+                        <a key={label} href={href} target="_blank" rel="noopener noreferrer">
+                          {content}
+                        </a>
+                      ) : (
+                        <div key={label} onClick={onClick} className="cursor-pointer">
+                          {content}
+                        </div>
+                      );
+                    })}
+                    <div className="text-center mt-6 mb-1">
+                      <button
+                        className="bg-[#1F2937] text-white font-semibold py-1 px-3 rounded-full shadow-lg   disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
                       >
-                        <div className="flex-1 h-8 rounded-lg px-3 flex items-center justify-center text-xs font-semibold bg-[#1F2937] text-white">
-                          {label}
-                        </div>
-                        <div className="flex items-center justify-center rounded-lg w-8 h-8 bg-white/10">
-                          <Icon strokeWidth={2.7} className="text-[#1F2937] w-4 h-4" />
-                        </div>
-                      </div>
-                    ))}
+                        Save Card to Reo
+
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+
         </div>
 
         {/* footer */}

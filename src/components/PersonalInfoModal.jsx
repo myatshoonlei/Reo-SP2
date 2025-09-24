@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import Cropper from "react-easy-crop";
 import getCroppedImg from "../utils/cropImage";
 import ReactSelect from "react-select";
-import '../index.css'; 
+import '../index.css';
 
 const PersonalInfoModal = () => {
   const navigate = useNavigate();
@@ -73,14 +73,14 @@ const PersonalInfoModal = () => {
   // Load existing card data
   const loadCardData = async (id) => {
     if (!id || !token) return;
-    
+
     setLoading(true);
     try {
       console.log(`Loading card data for ID: ${id}`);
       const res = await fetch(`${API_BASE}/api/personal-card/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       if (!res.ok) {
         if (res.status === 404) {
           console.log(`Card ${id} not found, clearing localStorage`);
@@ -90,7 +90,7 @@ const PersonalInfoModal = () => {
         }
         throw new Error(`HTTP ${res.status}`);
       }
-      
+
       const { data } = await res.json();
       console.log('Loaded card data:', data);
 
@@ -102,7 +102,7 @@ const PersonalInfoModal = () => {
       setJobTitle(data.jobTitle || '');
       setPhoneNumber(data.phoneNumber || '');
       setCompanyAddress(data.companyAddress || '');
-      
+
       // Ensure localStorage is in sync
       localStorage.setItem('personal_card_id', data.id.toString());
     } catch (error) {
@@ -117,13 +117,13 @@ const PersonalInfoModal = () => {
 
   // Initialize form data
   useEffect(() => {
-    console.log('🎬 useEffect triggered with:', { 
-      comingFromCardType, 
-      editMode, 
+    console.log('🎬 useEffect triggered with:', {
+      comingFromCardType,
+      editMode,
       incomingId,
-      locationState: location.state 
+      locationState: location.state
     });
-    
+
     if (comingFromCardType) {
       // Starting fresh from card-type selection → clear everything
       console.log('🧹 Coming from card type selection - clearing form');
@@ -203,30 +203,30 @@ const PersonalInfoModal = () => {
   };
 
   const jobTitles = [
-    "Software Engineer", "Product Manager", "Designer", "Data Scientist", 
-    "Marketing Specialist", "Product Designer", "Web Developer", "Full Stack Developer", 
-    "Backend Developer", "Frontend Developer", "Machine Learning Engineer", "DevOps Engineer", 
-    "Business Analyst", "Project Manager", "Quality Assurance Engineer", "UI/UX Designer", 
-    "Data Analyst", "System Administrator", "Cloud Engineer", "Security Engineer", 
-    "Sales Engineer", "HR Manager", "Operations Manager", "Research Scientist", 
-    "Artificial Intelligence Engineer", "Blockchain Developer", "Data Architect", 
-    "Game Developer", "Network Engineer", "Mobile Developer", "Content Writer", 
-    "SEO Specialist", "Technical Support Specialist", "Database Administrator", 
-    "Cloud Solutions Architect", "Cybersecurity Analyst", "Account Manager", "Customer Success Manager", 
-    "Business Development Representative", "Marketing Manager", "Sales Manager", 
-    "Operations Specialist", "Product Marketing Manager", "Data Science Intern", 
-    "Compliance Officer", "Legal Counsel", "Healthcare Administrator", "Financial Analyst", 
-    "Financial Advisor", "Investment Banker", "Physician", "Nurse", "Pharmacist", 
-    "Architect", "Construction Manager", "Logistics Manager", "Supply Chain Manager", 
-    "Customer Support Specialist", "Research Assistant", "Brand Manager", 
-    "Public Relations Specialist", "Event Planner", "Social Media Manager", "Retail Manager", 
-    "Sales Associate", "Customer Service Representative", "Accountant", "Tax Advisor", 
-    "Payroll Specialist", "Healthcare Consultant", "Nursing Assistant", "Software Tester", 
-    "Digital Marketer", "Content Strategist", "Copywriter", "Operations Coordinator", 
-    "Executive Assistant", "Legal Assistant", "Paralegal", "Business Owner", "Entrepreneur", 
-    "Consultant", "Freelancer", "Product Owner", "Chief Executive Officer", 
-    "Chief Technology Officer", "Chief Marketing Officer", "Chief Financial Officer", 
-    "Chief Operating Officer", "Chief Information Officer", "Chief People Officer", 
+    "Software Engineer", "Product Manager", "Designer", "Data Scientist",
+    "Marketing Specialist", "Product Designer", "Web Developer", "Full Stack Developer",
+    "Backend Developer", "Frontend Developer", "Machine Learning Engineer", "DevOps Engineer",
+    "Business Analyst", "Project Manager", "Quality Assurance Engineer", "UI/UX Designer",
+    "Data Analyst", "System Administrator", "Cloud Engineer", "Security Engineer",
+    "Sales Engineer", "HR Manager", "Operations Manager", "Research Scientist",
+    "Artificial Intelligence Engineer", "Blockchain Developer", "Data Architect",
+    "Game Developer", "Network Engineer", "Mobile Developer", "Content Writer",
+    "SEO Specialist", "Technical Support Specialist", "Database Administrator",
+    "Cloud Solutions Architect", "Cybersecurity Analyst", "Account Manager", "Customer Success Manager",
+    "Business Development Representative", "Marketing Manager", "Sales Manager",
+    "Operations Specialist", "Product Marketing Manager", "Data Science Intern",
+    "Compliance Officer", "Legal Counsel", "Healthcare Administrator", "Financial Analyst",
+    "Financial Advisor", "Investment Banker", "Physician", "Nurse", "Pharmacist",
+    "Architect", "Construction Manager", "Logistics Manager", "Supply Chain Manager",
+    "Customer Support Specialist", "Research Assistant", "Brand Manager",
+    "Public Relations Specialist", "Event Planner", "Social Media Manager", "Retail Manager",
+    "Sales Associate", "Customer Service Representative", "Accountant", "Tax Advisor",
+    "Payroll Specialist", "Healthcare Consultant", "Nursing Assistant", "Software Tester",
+    "Digital Marketer", "Content Strategist", "Copywriter", "Operations Coordinator",
+    "Executive Assistant", "Legal Assistant", "Paralegal", "Business Owner", "Entrepreneur",
+    "Consultant", "Freelancer", "Product Owner", "Chief Executive Officer",
+    "Chief Technology Officer", "Chief Marketing Officer", "Chief Financial Officer",
+    "Chief Operating Officer", "Chief Information Officer", "Chief People Officer",
     "Chief Strategy Officer"
   ];
 
@@ -243,89 +243,122 @@ const PersonalInfoModal = () => {
     }
     setEmail(input);
   };
-  
+
   const handleSubmitStep1 = async () => {
-    // require all fields
-    if (
-      !fullname.trim() ||
-      !email.trim() ||
-      !companyName.trim() ||
-      !jobTitle.trim() ||
-      !phoneNumber.trim() ||
-      !companyAddress.trim()
-    ) {
-      alert("Please fill in all fields.");
-      return;
-    }
-  
-    // block only on regex/format error
-    if (emailError) return;
-    if (submitting) return;
-  
-    setSubmitting(true);
-  
-    if (!token) {
-      alert("User not logged in.");
+  // Require all fields
+  if (
+    !fullname.trim() ||
+    !email.trim() ||
+    !companyName.trim() ||
+    !jobTitle.trim() ||
+    !phoneNumber.trim() ||
+    !companyAddress.trim()
+  ) {
+    alert("Please fill in all fields.");
+    return;
+  }
+
+  // Block on regex/format error
+  if (emailError) return;
+  if (submitting) return;
+
+  setSubmitting(true);
+
+  // Kickbox-style email verification
+  try {
+    const res = await fetch(`${API_BASE}/api/verify-email-check`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setEmailError(data.error || "Invalid email.");
       setSubmitting(false);
       return;
     }
-  
+  } catch (err) {
+    console.error("Kickbox check failed:", err);
+    alert("Server error during email verification.");
+    setSubmitting(false);
+    return;
+  }
+
+  // Auth check
+  if (!token) {
+    alert("User not logged in.");
+    setSubmitting(false);
+    return;
+  }
+
+  // Save card
+  try {
+    const storedId = localStorage.getItem("personal_card_id");
+    const existingId = cardId ?? (storedId ? Number(storedId) : null);
+    const isUpdate = cardId !== null;
+    const method = isUpdate ? "PUT" : "POST";
+    const url = isUpdate
+      ? `${API_BASE}/api/personal-card/${existingId}`
+      : `${API_BASE}/api/personal-card`;
+
+    const res = await fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        fullname,
+        email,
+        companyName,
+        jobTitle,
+        phoneNumber,
+        companyAddress,
+      }),
+    });
+
+    const text = await res.text();
+    let data;
     try {
-      const storedId = localStorage.getItem("personal_card_id");
-      const existingId = cardId ?? (storedId ? Number(storedId) : null);
-      const isUpdate = cardId !== null;
-      const method = isUpdate ? "PUT" : "POST";
-      const url = isUpdate
-        ? `${API_BASE}/api/personal-card/${existingId}`
-        : `${API_BASE}/api/personal-card`;
-  
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          fullname,
-          email,
-          companyName,
-          jobTitle,
-          phoneNumber,
-          companyAddress,
-        }),
-      });
-  
-      const text = await res.text();
-      let data;
-      try { data = JSON.parse(text); } catch {
-        alert("Server error: Invalid response");
-        return;
-      }
-  
-      if (!res.ok) {
-        alert(data.error || "Something went wrong.");
-        return;
-      }
-  
-      const resultCardId = method === "POST" ? data?.data?.id : cardId;
-      if (resultCardId == null) {
-        alert("Could not get card ID from server.");
-        return;
-      }
-  
-      setCardId(resultCardId);
-      localStorage.setItem("personal_card_id", resultCardId.toString());
-  
-      navigate("/create/company-logo", {
-        state: { cardType: "Myself", cardId: resultCardId },
-      });
-    } catch (err) {
-      alert(`Server error: ${err.message}`);
-      console.error("Submit error:", err);
-    } finally {
+      data = JSON.parse(text);
+    } catch {
+      alert("Server error: Invalid response");
       setSubmitting(false);
+      return;
     }
-  };
+
+    if (!res.ok) {
+      alert(data.error || "Something went wrong.");
+      setSubmitting(false);
+      return;
+    }
+
+    const resultCardId = method === "POST" ? data?.data?.id : cardId;
+    if (resultCardId == null) {
+      alert("Could not get card ID from server.");
+      setSubmitting(false);
+      return;
+    }
+
+    setCardId(resultCardId);
+    localStorage.setItem("personal_card_id", resultCardId.toString());
+
+    // ✅ All good — now navigate
+    navigate("/create/company-logo", {
+      state: { cardType: "Myself", cardId: resultCardId },
+    });
+  } catch (err) {
+    alert(`Server error: ${err.message}`);
+    console.error("Submit error:", err);
+  } finally {
+    setSubmitting(false);
+  }
+};
+
 
 
 
@@ -430,11 +463,10 @@ const PersonalInfoModal = () => {
               <button
                 onClick={handleSubmitStep1}
                 disabled={submitting || !!emailError}
-                className={`px-4 py-2 text-sm rounded-md ${
-                  submitting || emailError 
-                    ? 'bg-gray-400 cursor-not-allowed' 
-                    : 'bg-blue-400 hover:bg-blue-500'
-                } text-white`}
+                className={`px-4 py-2 text-sm rounded-md ${submitting || emailError
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-blue-400 hover:bg-blue-500'
+                  } text-white`}
               >
                 {submitting ? 'Saving...' : 'Next →'}
               </button>

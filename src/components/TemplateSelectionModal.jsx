@@ -204,7 +204,7 @@ export default function TemplateSelectionModal() {
         const dataUrl = await QRCode.toDataURL(url, { width: 160, margin: 0 });
         setQrDataUrl(dataUrl);
       } catch (e) {
-        console.warn("QR generation failed:", e);
+        // console.warn("QR generation failed:", e);
         setQrDataUrl(null);
       }
     };
@@ -392,13 +392,20 @@ export default function TemplateSelectionModal() {
                     : "border-gray-300 hover:border-blue-400 hover:shadow-md hover:bg-blue-50/30"
                   }`}
               >
-                <div className="w-[330px] sm:w-[330px] lg:w-[400px] flex items-center justify-center rounded-lg overflow-hidden bg-white">
-                  {T && <T {...cardInfo} />}
-                </div>
+                {T && cardInfo && (
+                  <T
+                    {...cardInfo}
+                  />
+                )}
               </div>
             );
           })}
         </div>
+
+        {/* <div className="w-[330px] sm:w-[330px] lg:w-[400px] flex items-center justify-center rounded-lg overflow-hidden bg-white">
+                  // {T && <T {...cardInfo} />}
+                  
+                </div> */}
 
         <div className="pt-2 flex justify-between">
           <button

@@ -14,10 +14,16 @@ export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
+  
 
-  const validateEmailFormat = (email) => {
-    const regex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
-    return regex.test(email);
+  const validateEmail = (input) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(input) && input !== '') {
+      setEmailError("Please enter a valid email address.");
+    } else {
+      setEmailError(null);
+    }
+    setEmail(input);
   };
 
 
@@ -89,8 +95,8 @@ export default function Signup() {
             placeholder="Enter your email"
             value={email}
             onChange={(e) => {
-              setEmail(e.target.value);
-              setEmailError(""); // clear error on change
+              validateEmail(e.target.value);
+               // clear error on change
             }}
             className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 ${emailError ? "border-red-500 focus:ring-red-400" : "border-gray-300 focus:ring-blue-400"
               }`}

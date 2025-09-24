@@ -4,7 +4,7 @@ import WelcomePage from "./pages/WelcomePage";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Signup from "./pages/Signup";
-// import verifyEmail from "./server/services/verifyEmail";
+import VerifyEmail from "./components/VerifyEmail";
 import VerifyEmailSent from "./components/verifyEmailSent";
 import CardTypeModal from "./components/CardTypeModal";
 import PersonalInfoModal from "./components/PersonalInfoModal";
@@ -67,7 +67,7 @@ function AppContent() {
           <Route path="/teams/:teamId" element={<TeamMembersPage />} />
           <Route path="/contacts" element={<ContactsPage />} />
           <Route path="/verify-email-sent" element={<VerifyEmailSent />} />
-          {/* <Route path="/verify-email/:token" element={<verifyEmail />} /> */}
+          <Route path="/verify-email/:token" element={<VerifyEmail />} />
 
           <Route path="/card/:id" element={<BusinessCardPage key={location.pathname} />} />
           <Route path="/team/:teamId/member/:memberId" element={<BusinessCardPage key={location.pathname} />} />

@@ -7,11 +7,12 @@ export default function VerifyEmailSent() {
   const email = location.state?.email || localStorage.getItem("pendingEmail") || "";
   const [isVerified, setIsVerified] = useState(false);
 
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 
 
   useEffect(() => {
     if (!email) return;
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
     const interval = setInterval(async () => {
       try {

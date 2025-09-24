@@ -123,7 +123,7 @@ export default function Home() {
         }
         try {
           // list teams (you already have GET /api/teamcard/)
-          const res = await fetch("http://localhost:5000/api/teamcard/", {
+          const res = await fetch(`${API_URL}/api/teamcard/`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           const json = await res.json();
@@ -136,7 +136,7 @@ export default function Home() {
     
           // optional: fetch counts to show in folder
           try {
-            const cr = await fetch("http://localhost:5000/api/teamInfo/counts", {
+            const cr = await fetch(`${API_URL}/api/teamInfo/counts`, {
               headers: { Authorization: `Bearer ${token}` },
             });
             const cj = await cr.json();
@@ -165,8 +165,8 @@ export default function Home() {
           let token = localStorage.getItem("token");
           if (token?.startsWith('"') && token?.endsWith('"')) token = token.slice(1, -1);
           if (token?.toLowerCase().startsWith("bearer ")) token = token.slice(7);
-      
-          const res = await fetch(`http://localhost:5000/api/teamcard/${teamToDelete.teamid}`, {
+
+          const res = await fetch(`${API_URL}/api/teamcard/${teamToDelete.teamid}`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${token}` },
           });
