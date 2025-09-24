@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import googleIcon from "../assets/googleIcon.png";
 import { GoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
+import { Eye, EyeOff } from "lucide-react";
 
 
 export default function Signup() {
@@ -14,7 +15,8 @@ export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
-  
+  const [showPassword, setShowPassword] = useState(false);
+
 
   const validateEmail = (input) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -24,6 +26,11 @@ export default function Signup() {
       setEmailError(null);
     }
     setEmail(input);
+  };
+
+  const validateEmailFormat = (email) => {
+    const regex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+    return regex.test(email);
   };
 
 
@@ -96,7 +103,7 @@ export default function Signup() {
             value={email}
             onChange={(e) => {
               validateEmail(e.target.value);
-               // clear error on change
+              // clear error on change
             }}
             className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 ${emailError ? "border-red-500 focus:ring-red-400" : "border-gray-300 focus:ring-blue-400"
               }`}
@@ -121,23 +128,33 @@ export default function Signup() {
 
 
         {/* Password */}
-        <div className="text-left mb-6">
+        {/* Password */}
+        <div className="relative text-left mb-6"> {/* <-- 1. Added 'relative' here */}
           <label className="block text-sm font-semibold text-black mb-1">Password</label>
           <input
-            type="password"
+            // 2. Changed type based on `showPassword` state
+            type={showPassword ? "text" : "password"} 
             placeholder="Enter your password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
+
+          <div
+            className="absolute right-3 top-1/2 mt-3 transform -translate-y-1/2 cursor-pointer" // Adjusted positioning slightly
+            onClick={() => setShowPassword(prev => !prev)} 
+          >
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          </div>
         </div>
 
         {/* Divider */}
         <div className="text-sm text-gray-500 mb-4 text-center">Or</div>
 
         {/* Google Button */}
-        <GoogleLogin
-          onSuccess={async (credentialResponse) => {
+        <div className="flex justify-center mb-4">
+          <GoogleLogin
+            onSuccess={async (credentialResponse) => {
             const decoded = jwtDecode(credentialResponse.credential);
             console.log("Google User:", decoded); // check what's inside
 
@@ -171,11 +188,10 @@ export default function Signup() {
             }
           }}
           onError={() => {
-            alert("Google Sign-In failed");
-          }}
-        />
-
-
+              alert("Google Sign-In failed");
+            }}
+          />
+        </div>
 
         {/* Already have account */}
         <p className="text-sm text-black mb-6">

@@ -85,8 +85,9 @@ export default function Login() {
         <div className="text-sm text-gray-500 mb-4">Or</div>
 
         {/* Google Button */}
-        <GoogleLogin
-          onSuccess={async (credentialResponse) => {
+        <div className="flex justify-center mb-4">
+          <GoogleLogin
+            onSuccess={async (credentialResponse) => {
             const cred = credentialResponse?.credential || "";
             const decoded = cred ? jwtDecode(cred) : null;
             if (!decoded) {
@@ -132,9 +133,10 @@ export default function Login() {
             }
           }}
           onError={() => {
-            alert("Google Sign-In failed");
-          }}
-        />
+              alert("Google Sign-In failed");
+            }}
+          />
+        </div>
 
         <p className="text-sm text-black mb-6">
           new to Reo?{" "}

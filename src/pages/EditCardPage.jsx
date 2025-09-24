@@ -133,10 +133,10 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
         // 👇 pick template from either templateId (preferred) or legacy component_key
         const fromId = Number(d.templateId);
         const fromKey = (d.component_key ?? d.componentKey ?? "").toString();
-        const keyToId = { template1: 1, template2: 2, template3: 3 };
+        const keyToId = { template1: 1, template2: 2, template3: 3, template4: 4, template5: 5, template6: 6 };
 
         const chosenTemplateId =
-          (Number.isFinite(fromId) && [1, 2, 3].includes(fromId))
+          (Number.isFinite(fromId) && [1, 2, 3, 4, 5, 6].includes(fromId))
             ? fromId
             : (keyToId[fromKey] || 1);
 
@@ -285,7 +285,7 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
   };
 
   // replace CardComponent selection
-  const CardComponentById = { 1: Template1, 2: Template2, 3: Template3 };
+  const CardComponentById = { 1: Template1, 2: Template2, 3: Template3, 4: Template4, 5: Template5, 6: Template6 };
   const CardComponent = CardComponentById[templateId] || Template1;
 
   const p = buildTemplateProps(cardData);
