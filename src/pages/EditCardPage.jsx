@@ -11,7 +11,7 @@ import Template6 from "../components/templates/Template6";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050";
 
 const templateMap = {
   template1: Template1,
@@ -22,10 +22,15 @@ const templateMap = {
   template6: Template6,
 };
 
-
-
 const templateIdToKey = (id) =>
-  ({ 1: "template1", 2: "template2", 3: "template3", 4: "template4", 5: "template5", 6: "template6" }[Number(id)] || "template1");
+  ({
+    1: "template1",
+    2: "template2",
+    3: "template3",
+    4: "template4",
+    5: "template5",
+    6: "template6",
+  }[Number(id)] || "template1");
 
 const buildTemplateProps = (raw = {}) => {
   const props = {
@@ -43,6 +48,10 @@ const buildTemplateProps = (raw = {}) => {
     // logo
     logo: raw.logo ?? null,
     logoUrl: raw.logoUrl ?? raw.logo ?? null,
+
+    // font family
+    font_family: raw.font_family ?? raw.fontFamily, // ✅ add
+    fontFamily: raw.fontFamily ?? raw.font_family,
     // profile photo
     profile_photo: raw.profile_photo ?? null,
     // keep everything else just in case templates read extra props
@@ -59,9 +68,12 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
 
-  const { cardId: paramCardId } = useParams();                // ✅
+  const { cardId: paramCardId } = useParams(); // ✅
   const [cardId, setCardId] = useState(
-    paramCardId || initialCardId || localStorage.getItem("personal_card_id") || null
+    paramCardId ||
+      initialCardId ||
+      localStorage.getItem("personal_card_id") ||
+      null
   );
   const navigate = useNavigate();
 
@@ -73,6 +85,11 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [companyAddress, setCompanyAddress] = useState("");
   const [bio, setBio] = useState("");
+
+  //font family
+  const [fontFamily, setFontFamily] = useState(
+    `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif`
+  );
 
   // images (strings or null)
   const [profileImageUrl, setProfileImageUrl] = useState(null);
@@ -100,20 +117,20 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
       try {
         setLoading(true);
         setErr("");
-  
+
         // normalize token like you did elsewhere (helps avoid Bearer/quotes issues)
         let t = token;
         if (t?.startsWith('"') && t?.endsWith('"')) t = t.slice(1, -1);
         if (t && !/^bearer /i.test(t)) t = `Bearer ${t}`;
-  
+
         const res = await fetch(`${API_BASE}/api/personal-card/${cardId}`, {
           headers: { Authorization: t },
         });
         if (!res.ok) throw new Error("Failed to load card");
-  
+
         const j = await res.json();
         const d = j?.data ?? j; // <-- unwrap
-  
+
         // read both snake_case and camelCase
         setFullname(d.fullname || "");
         setEmail(d.email || "");
@@ -122,29 +139,39 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
         setPhoneNumber(d.phone_number ?? d.phoneNumber ?? "");
         setCompanyAddress(d.company_address ?? d.companyAddress ?? "");
         setBio(d.bio || "");
-  
+        setFontFamily(d.font_family ?? d.fontFamily ?? fontFamily);
+
         // images if present
         const logoB64 = d.logo || d.logoBase64;
         const photoB64 = d.profile_photo || d.profilePhoto;
         setCompanyLogoUrl(logoB64 ? `data:image/png;base64,${logoB64}` : null);
-        setProfileImageUrl(photoB64 ? `data:image/jpeg;base64,${photoB64}` : null);
-  
+        setProfileImageUrl(
+          photoB64 ? `data:image/jpeg;base64,${photoB64}` : null
+        );
+
         // after you parse `d`
         // 👇 pick template from either templateId (preferred) or legacy component_key
         const fromId = Number(d.templateId);
         const fromKey = (d.component_key ?? d.componentKey ?? "").toString();
-        const keyToId = { template1: 1, template2: 2, template3: 3, template4: 4, template5: 5, template6: 6 };
+        const keyToId = {
+          template1: 1,
+          template2: 2,
+          template3: 3,
+          template4: 4,
+          template5: 5,
+          template6: 6,
+        };
 
         const chosenTemplateId =
-          (Number.isFinite(fromId) && [1, 2, 3, 4, 5, 6].includes(fromId))
+          Number.isFinite(fromId) && [1, 2, 3, 4, 5, 6].includes(fromId)
             ? fromId
-            : (keyToId[fromKey] || 1);
+            : keyToId[fromKey] || 1;
 
         setTemplateId(chosenTemplateId);
- 
+
         setPrimaryColor(d.primary_color ?? d.primaryColor ?? "#1F2937");
         setSecondaryColor(d.secondary_color ?? d.secondaryColor ?? "#f5f9ff");
-  
+
         const id = d?._id || d?.id || cardId;
         if (id) {
           setCardId(id);
@@ -156,14 +183,13 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
         setLoading(false);
       }
     };
-  
+
     if (cardId) load();
     return () => {
       prevBlobUrls.current.forEach((u) => URL.revokeObjectURL(u));
       prevBlobUrls.current = [];
     };
   }, [cardId, token]);
-  
 
   // save everything (first uploads, then text fields)
   const saveAll = async () => {
@@ -220,6 +246,10 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
         phoneNumber,
         companyAddress,
         bio,
+        primaryColor,
+        secondaryColor,
+        template_id: templateId,
+        font_family: fontFamily, // ✅ add
       };
 
       const res = await fetch(`${API_BASE}/api/personal-card/${cardId}`, {
@@ -282,40 +312,46 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
     primary_color: primaryColor,
     secondary_color: secondaryColor,
     company_address: companyAddress,
+    font_family: fontFamily,
+    fontFamily,
   };
 
   // replace CardComponent selection
-  const CardComponentById = { 1: Template1, 2: Template2, 3: Template3, 4: Template4, 5: Template5, 6: Template6 };
+  const CardComponentById = {
+    1: Template1,
+    2: Template2,
+    3: Template3,
+    4: Template4,
+    5: Template5,
+    6: Template6,
+  };
   const CardComponent = CardComponentById[templateId] || Template1;
 
   const p = buildTemplateProps(cardData);
 
   const closeModal = () => {
-    if (onClose) return onClose();
-    if (window.history.length > 1) navigate(-1);
-    else navigate("/home");
+    navigate("/home");
   };
 
   return (
-    <div className="min-h-[100dvh] -screen font-inter bg-gradient-to-b from-[#F3F9FE] to-[#C5DBEC]">
+    <div className="min-h-screen font-inter bg-gradient-to-b from-[#F3F9FE] to-[#C5DBEC]">
       {/* ✅ Navbar at the very top */}
       <Navbar onSave={saveAll} saving={saving} onClose={closeModal} />
-  
+
       {/* ✅ Add pt-20 to offset the fixed navbar */}
-      <div className="flex flex-col md:flex-row pt-24">
+      <div className="flex pt-24 ">
         {/* Sidebar on the left */}
         <Sidebar activePage="Edit Card" />
-  
+
         {/* Main content on the right */}
-
-        <div className="flex-1 w-full md:w-4/5 px-4 sm:px-6 pt-4 md:pt-6 pb-6
-                min-h-[100dvh] overflow-y-auto -webkit-overflow-scrolling-touch">
-
+        <div className="flex-1 px-6 pt-4 h-[calc(100vh-80px)] overflow-hidden">
           {/* alerts */}
           {(err || ok) && (
             <div className="pt-3">
               {err && (
-                <div className="mb-2 p-2 rounded bg-red-50 text-red-700">{err}</div>
+                <div className="mb-2 p-2 rounded bg-red-50 text-red-700">
+                  {err}
+                </div>
               )}
               {ok && (
                 <div className="mb-2 p-2 rounded bg-green-50 text-green-700">
@@ -324,10 +360,9 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
               )}
             </div>
           )}
-  
-          {/* body: form + phone */}
-          <div className="grid grid-cols-11 gap-4 items-start">
 
+          {/* body: form + phone */}
+          <div className="grid grid-cols-11 gap-4 items-center h-full">
             {/* form (left) */}
             <main className="col-span-11 md:col-span-8 lg:col-span-7 h-full">
               <div className="rounded-2xl bg-white shadow-sm border border-[#d6e6fb]">
@@ -353,14 +388,26 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
 
                 {/* fields */}
                 <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <LabeledInput label="Name" value={fullname} onChange={setFullname} />
+                  <LabeledInput
+                    label="Name"
+                    value={fullname}
+                    onChange={setFullname}
+                  />
                   <LabeledInput
                     label="Company Address"
                     value={companyAddress}
                     onChange={setCompanyAddress}
                   />
-                  <LabeledInput label="Job Title" value={jobTitle} onChange={setJobTitle} />
-                  <LabeledInput label="Company" value={companyName} onChange={setCompanyName} />
+                  <LabeledInput
+                    label="Job Title"
+                    value={jobTitle}
+                    onChange={setJobTitle}
+                  />
+                  <LabeledInput
+                    label="Company"
+                    value={companyName}
+                    onChange={setCompanyName}
+                  />
                   <LabeledInput
                     label="Email"
                     type="email"
@@ -375,6 +422,7 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
                 </div>
               </div>
             </main>
+
   
             {/* right phone preview */}
           <aside className="col-span-11 md:col-span-4 self-center justify-center">
@@ -401,43 +449,50 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
                     style={{ backfaceVisibility: "hidden", transform: "rotateY(0deg)" }}
                   >
                     <div className="mx-auto w-[360px] h-[220px] rounded-xl overflow-hidden shadow relative bg-white">
-                      <CardComponent {...p} side="front" style={{ width: "100%", height: "100%" }} />
+                        <CardComponent
+                          {...p}
+                          side="front"
+                          style={{ width: "100%", height: "100%" }}
+                        />
+                      </div>
                     </div>
-                  </div>
 
-                  {/* BACK: Phone preview */}
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      backfaceVisibility: "hidden",
-                      transform: "rotateY(180deg)",
-                      transformOrigin: "top center",
-                    }}
-                  >
-                    {/* scale down slightly so the entire phone fits */}
-                    <div style={{ transform: "scale(0.95)", transformOrigin: "top center" }}>
-                      <PhonePreview
-                        name={p.fullName || "Your Name"}
-                        title={p.jobTitle || "Job Title"}
-                        company={p.companyName || "Company"}
-                        phone={p.phoneNumber || "Phone"}
-                        email={p.email || "email@example.com"}
-                        avatar={p.profile_photo}
-                        logo={p.logo}
-                      />
+                    {/* BACK: Phone preview */}
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        backfaceVisibility: "hidden",
+                        transform: "rotateY(180deg)",
+                        transformOrigin: "top center",
+                      }}
+                    >
+                      {/* scale down slightly so the entire phone fits */}
+                      <div
+                        style={{
+                          transform: "scale(0.95)",
+                          transformOrigin: "top center",
+                        }}
+                      >
+                        <PhonePreview
+                          name={p.fullName || "Your Name"}
+                          title={p.jobTitle || "Job Title"}
+                          company={p.companyName || "Company"}
+                          phone={p.phoneNumber || "Phone"}
+                          email={p.email || "email@example.com"}
+                          avatar={p.profile_photo}
+                          logo={p.logo}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </aside>
-
+            </aside>
           </div>
         </div>
       </div>
-      </div>
-    
-  );  
+    </div>
+  );
 }
 
 function LabeledInput({ label, value, onChange, type = "text" }) {

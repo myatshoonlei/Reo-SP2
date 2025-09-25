@@ -26,7 +26,7 @@ export default function BackgroundColorModal() {
   const [showPicker, setShowPicker] = useState(false);
   const [customColor, setCustomColor] = useState(persistedSecondaryCustomColor);
   const [selectedColor, setSelectedColor] = useState(persistedSecondaryColor);
-  
+
   const getEffectiveCardId = () => {
     if (cardId) return cardId;
     const stored = localStorage.getItem("personal_card_id");
@@ -40,24 +40,24 @@ export default function BackgroundColorModal() {
   const effectiveCardId = getEffectiveCardId();
   const effectiveTeamId = getEffectiveTeamId();
 
-    useEffect(() => {
-        // Persist flow + ids so back/forward doesn't lose them
-        if (cardType) localStorage.setItem("card_type", cardType);           // "Myself" | "Team"
-        if (cardId != null) localStorage.setItem("personal_card_id", String(cardId));
-        if (teamId != null) localStorage.setItem("team_card_id", String(teamId));
-      }, [cardType, cardId, teamId]);
-    
+  useEffect(() => {
+    // Persist flow + ids so back/forward doesn't lose them
+    if (cardType) localStorage.setItem("card_type", cardType);           // "Myself" | "Team"
+    if (cardId != null) localStorage.setItem("personal_card_id", String(cardId));
+    if (teamId != null) localStorage.setItem("team_card_id", String(teamId));
+  }, [cardType, cardId, teamId]);
+
 
   useEffect(() => {
     // Bring back previous background palette / selection
     const savedPalette = localStorage.getItem("secondaryPalette");
     if (savedPalette) setColors(JSON.parse(savedPalette));
-  
+
     const savedColor = localStorage.getItem("secondaryColor");
     const savedCustom = localStorage.getItem("customSecondaryColor");
     if (savedColor) setSelectedColor(savedColor);
     if (savedCustom) setCustomColor(JSON.parse(savedCustom));
-  
+
     // helper: blob -> data URL
     const blobToDataURL = (blob) =>
       new Promise((resolve, reject) => {
@@ -66,22 +66,22 @@ export default function BackgroundColorModal() {
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
-  
+
     const fetchLogoAndExtractColors = async () => {
       try {
         let dataUrl = null;
-  
+
         // 1) If Step 3 passed a data URL, use it
         if (typeof croppedLogo === "string" && croppedLogo.startsWith("data:")) {
           dataUrl = croppedLogo;
         }
-  
+
         // 2) Local cache from Step 2/3
         if (!dataUrl) {
           const cached = localStorage.getItem("last_logo_preview"); // data URL
           if (cached && cached.startsWith("data:")) dataUrl = cached;
         }
-  
+
         // 3) (Optional) Backend fallback — only if you truly have such an endpoint.
         // Replace this with your real one if needed. Commented out to avoid 404 spam.
         /*
@@ -96,19 +96,19 @@ export default function BackgroundColorModal() {
           }
         }
         */
-  
+
         if (!dataUrl) {
           console.warn("No logo available for secondary color extraction.");
           return;
         }
-  
+
         // Persist for consistency (Step 2/3 can also read this)
         localStorage.setItem("last_logo_preview", dataUrl);
-  
+
         const img = new Image();
         img.crossOrigin = "Anonymous";
         img.src = dataUrl;
-  
+
         img.onload = () => {
           const colorThief = new ColorThief();
           try {
@@ -117,28 +117,28 @@ export default function BackgroundColorModal() {
               (rgb) =>
                 `#${rgb.map((v) => v.toString(16).padStart(2, "0")).join("")}`
             );
-  
+
             if (savedColor && !hexColors.includes(savedColor)) {
               hexColors.push(savedColor);
             }
-  
+
             setColors(hexColors);
             localStorage.setItem("secondaryPalette", JSON.stringify(hexColors));
           } catch (err) {
             console.error("Color extraction failed:", err);
           }
         };
-  
+
         imgRef.current = img;
       } catch (e) {
         console.error("Logo hydrate failed:", e);
       }
     };
-  
+
     fetchLogoAndExtractColors();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [croppedLogo]);
-  
+
 
   const hexToRgbObject = (hex) => {
     const bigint = parseInt(hex.slice(1), 16);
@@ -150,25 +150,25 @@ export default function BackgroundColorModal() {
     };
   };
 
-    const getFlow = () => {
-        // 1) explicit from state/localStorage
-        const raw =
-          (location.state?.cardType ||
-            localStorage.getItem("card_type") ||
-            localStorage.getItem("flow_type") ||
-            ""
-          ).toLowerCase();
-        if (raw === "team") return "Team";
-        if (raw === "myself") return "Myself";
-    
-        // 2) infer from ids if flag missing
-        const hasTeam =
-          !!teamId || !!localStorage.getItem("team_card_id");
-        const hasPersonal =
-          !!cardId || !!localStorage.getItem("personal_card_id");
-        return hasTeam && !hasPersonal ? "Team" : "Myself";
-      };
-    
+  const getFlow = () => {
+    // 1) explicit from state/localStorage
+    const raw =
+      (location.state?.cardType ||
+        localStorage.getItem("card_type") ||
+        localStorage.getItem("flow_type") ||
+        ""
+      ).toLowerCase();
+    if (raw === "team") return "Team";
+    if (raw === "myself") return "Myself";
+
+    // 2) infer from ids if flag missing
+    const hasTeam =
+      !!teamId || !!localStorage.getItem("team_card_id");
+    const hasPersonal =
+      !!cardId || !!localStorage.getItem("personal_card_id");
+    return hasTeam && !hasPersonal ? "Team" : "Myself";
+  };
+
 
   const handleBack = () => {
     const flow = getFlow();
@@ -187,13 +187,13 @@ export default function BackgroundColorModal() {
     try {
       const flow = getFlow();
       if (flow === "Myself" && !effectiveCardId) {
-           alert("Missing card ID. Please go back to Step 1.");
-             return;
-           }
-           if (flow === "Team" && !effectiveTeamId) {
-             alert("Missing team ID. Please go back to Step 1.");
-             return;
-           }
+        alert("Missing card ID. Please go back to Step 1.");
+        return;
+      }
+      if (flow === "Team" && !effectiveTeamId) {
+        alert("Missing team ID. Please go back to Step 1.");
+        return;
+      }
 
       // decide next route based on card type
       // const nextRoute =
@@ -220,14 +220,14 @@ export default function BackgroundColorModal() {
       };
 
       const res = await fetch(`${API_URL}/api/save-color`, {
-             method: "POST",
-             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-             body: JSON.stringify(payload),
-           });
-           if (!res.ok) {
-             const errBody = await res.json().catch(() => ({}));
-             throw new Error(errBody.error || `Save failed (${res.status})`);
-           }
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || `Save failed (${res.status})`);
+      }
 
       // Go to Step 5 (Template Selection)
       navigate(nextRoute, {
@@ -245,7 +245,7 @@ export default function BackgroundColorModal() {
       // Still go forward so the user isn’t blocked
       const flow = getFlow();
       const nextRoute = flow === "Team" ? "/create/upload-info" : "/create/template-selection";
-        navigate(nextRoute, {
+      navigate(nextRoute, {
         state: {
           cardType: flow,
           cardId: effectiveCardId,
@@ -283,7 +283,7 @@ export default function BackgroundColorModal() {
       navigate("/create/background-color", { state });
     }
   };
-  
+
 
   return (
     <div className="fixed inset-0 z-50 flex justify-center items-center bg-white/30 backdrop-blur-sm">
@@ -299,11 +299,10 @@ export default function BackgroundColorModal() {
           {colors.map((color, index) => (
             <div
               key={index}
-              className={`w-6 h-6 rounded-full border shadow-md cursor-pointer ${
-                color.toLowerCase() === selectedColor?.toLowerCase()
+              className={`w-6 h-6 rounded-full border shadow-md cursor-pointer ${color.toLowerCase() === selectedColor?.toLowerCase()
                   ? "ring-2 ring-blue-500"
                   : ""
-              }`}
+                }`}
               style={{ backgroundColor: color }}
               onClick={() => {
                 const rgb = hexToRgbObject(color);
@@ -319,12 +318,11 @@ export default function BackgroundColorModal() {
             />
           ))}
 
-          <div
-            onClick={() => setShowPicker(!showPicker)}
-            className="w-6 h-6 rounded-full border-2 border-blue-300 flex items-center justify-center cursor-pointer"
-          >
+          <div onClick={() => setShowPicker(!showPicker)}
+            className="w-6 h-6 rounded-full border-2 border-blue-300 flex items-center justify-center cursor-pointer">
             <span className="text-[14px] font-bold leading-[0] relative -top-[1px]">+</span>
           </div>
+
         </div>
 
         {showPicker && (
@@ -332,9 +330,10 @@ export default function BackgroundColorModal() {
             <SketchPicker
               color={customColor}
               onChange={(color) => setCustomColor(color.rgb)}
+              onChangeComplete={() => { }}
               presetColors={colors.concat([
                 `rgba(${customColor.r}, ${customColor.g}, ${customColor.b}, ${customColor.a})`,
-              ])}
+              ])} // optional: remove preset swatches
             />
             <div className="mt-2 flex justify-center items-center gap-2">
               <div
@@ -352,18 +351,22 @@ export default function BackgroundColorModal() {
                     .toString(16)
                     .slice(1)}`;
                   setColors((prev) => [...prev, hex]);
-                  localStorage.setItem("secondaryPalette", JSON.stringify([...colors, hex]));
+                  setShowPicker(false);
 
-
+                  // 🟡 Persist the new custom color as selected
                   setSelectedColor(hex);
-                  persistedSecondaryColor = hex;
-                  persistedSecondaryCustomColor = customColor;
-                  localStorage.setItem("secondaryColor", hex);
-                  localStorage.setItem("customSecondaryColor", JSON.stringify(customColor));
+                  persistedPrimaryColor = hex;
+                  persistedPrimaryCustomColor = customColor;
+                  localStorage.setItem("primaryColor", hex);
+                  localStorage.setItem("customPrimaryColor", JSON.stringify(customColor));
                 }}
+
+
                 title="Add this color"
               />
+
             </div>
+
           </div>
         )}
 
@@ -377,9 +380,8 @@ export default function BackgroundColorModal() {
           <button
             onClick={handleNext}
             disabled={!selectedColor && !customColor}
-            className={`bg-blue-400 text-white px-4 py-2 rounded-md text-sm ${
-              !selectedColor && !customColor ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-500"
-            }`}
+            className={`bg-blue-400 text-white px-4 py-2 rounded-md text-sm ${!selectedColor && !customColor ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-500"
+              }`}
           >
             Next →
           </button>

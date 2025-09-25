@@ -1,4 +1,4 @@
-"use client";
+"use cli ent";
 
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";

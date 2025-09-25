@@ -77,11 +77,13 @@ const Template3 = (rawProps) => {
 
         {/* Top Section: Logo, Company, Title */}
         <div className="flex items-center space-x-3">
-          <img
-            src={logo || "/placeholder.svg"}
-            alt="Logo"
-            className="w-12 h-12 rounded-full object-cover border-2 border-white/50"
-          />
+          {logo && (
+            <img
+              src={logo || "/placeholder.svg"}
+              alt="Logo"
+              className="w-12 h-12 rounded-full object-cover border-2 border-white/50"
+            />
+          )}
           <div>
             <p className=" text-xl font-bold">{fullname || "Ben10"}</p>
             <p className="text-sm opacity-70">{job_title || "Job Title"}</p>

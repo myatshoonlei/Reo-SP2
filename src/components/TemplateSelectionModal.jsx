@@ -340,17 +340,18 @@ export default function TemplateSelectionModal() {
         <h3 className="text-lg font-bold text-[#0b2447] mb-1 text-center">Choose a template for Your Business Card</h3>
         <p className="text-xs text-gray-500 mb-4 text-center">Pick a template. You can also customize it later.</p>
 
-        <div className=" grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 flex-1 overflow-y-auto pr-2 pb-4">
+        <div className=" grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 flex-1 overflow-y-auto pr-2 pb-4 mt-10">
           {templates.map((t) => {
             const T = templateMap[t.component_key]
             return (
               <div
                 key={t.id}
                 onClick={() => setSelectedTemplate(t.id)}
-                className={`cursor-pointer rounded-xl border transition-all flex items-center justify-center ${
-                  selectedTemplate === t.id
-                    ? "border-blue-500 shadow-lg bg-blue-50"
-                    : "border-gray-300 hover:border-blue-400 hover:shadow-md hover:bg-blue-50/30"
+                className={`cursor-pointer rounded-xl border flex items-center justify-center 
+    transition-all duration-200 
+    ${selectedTemplate === t.id
+      ? "border-blue-500 shadow-lg bg-blue-200 " // This is the selected style
+      : "border-gray-300 hover:border-blue-400 hover:shadow-md hover:scale-105"
                 }`}
               >
                 {T && cardInfo && <T {...cardInfo} />}

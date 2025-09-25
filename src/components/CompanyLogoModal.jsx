@@ -359,8 +359,8 @@ useEffect(() => {
     <div className="fixed inset-0 z-50 flex justify-center items-center bg-white/30 backdrop-blur-sm">
       <div className="bg-white rounded-xl p-6 shadow-lg w-[340px] text-center">
         <h2 className="font-semibold text-gray-600 text-sm mb-1">Step 2</h2>
-    <h3 className="text-lg font-bold text-[#0b2447] mb-1">Company Logo</h3>
-    <p className="text-xs text-gray-500 mb-2">Upload Your Company Logo</p>
+    <h3 className="text-lg font-bold text-[#0b2447] mb-1">Organization or Company Logo</h3>
+    <p className="text-xs text-gray-500 mb-2">Upload Logo Here</p>
 
     <input
       type="file"

@@ -106,6 +106,54 @@ router.delete("/:cardId", verifyToken, async (req, res) => {
     res.status(500).json({ error: "Server error while removing contact." });
   }
 });
+// --- GET one contact (email, phone) by cardId ---
+router.get("/:cardId", verifyToken, async (req, res) => {
+  const { cardId } = req.params;
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT email, phone_number AS phone 
+       FROM personal_cards 
+       WHERE id = $1`,
+      [cardId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Contact not found" });
+    }
+
+    res.json({ data: rows[0] });
+  } catch (err) {
+    console.error("Error fetching contact:", err.message);
+    res.status(500).json({ error: "Server error while fetching contact." });
+  }
+});
+
+
+// --- PUT update phone/email by cardId ---
+router.put("/:cardId", verifyToken, async (req, res) => {
+  const { cardId } = req.params;
+  const { phone, email } = req.body;
+
+  try {
+    const { rows } = await pool.query(
+      `UPDATE personal_cards 
+       SET phone_number = $1, email = $2 
+       WHERE id = $3 
+       RETURNING id, email, phone_number AS phone`,
+      [phone, email, cardId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Contact not found" });
+    }
+
+    res.json({ data: rows[0] });
+  } catch (err) {
+    console.error("Error updating contact:", err.message);
+    res.status(500).json({ error: "Server error while updating contact." });
+  }
+});
 
 
 export default router;

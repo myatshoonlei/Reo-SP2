@@ -21,7 +21,32 @@ const templateMap = {
     Template1, Template2, Template3, Template4, Template5, Template6,
     template1: Template1, template2: Template2, template3: Template3,
     template4: Template4, template5: Template5, template6: Template6,
-  };
+};
+
+
+
+
+const preloadImage = (src) =>
+  new Promise((res) => {
+    if (!src) return res();
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.decoding = "sync";
+    img.onload = () => res();
+    img.onerror = () => res(); // don't hang
+    img.src = src;
+  });
+
+const waitForAllImages = (rootEl) =>
+  Promise.all(
+    Array.from(rootEl.querySelectorAll("img")).map((img) => {
+      if (img.complete && img.naturalWidth) return;
+      return new Promise((r) => {
+        img.onload = () => r();
+        img.onerror = () => r();
+      });
+    })
+  );
 
 
 const BusinessCardPage = () => {
@@ -29,7 +54,7 @@ const BusinessCardPage = () => {
 
     const BASE = import.meta.env.VITE_PUBLIC_BASE_URL || window.location.origin;
     const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-  // 👇 accept BOTH personal and team url params
+    // 👇 accept BOTH personal and team url params
     const { id, teamId, memberId } = useParams();
 
     const navigate = useNavigate();
@@ -56,8 +81,8 @@ const BusinessCardPage = () => {
 
 
         async function fetchPersonal(cardId) {
-  
-   // Send auth token if it exists so the backend can check ownership
+
+            // Send auth token if it exists so the backend can check ownership
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
             const res = await fetch(`${API_URL}/api/card/${cardId}`, { headers });
             if (!res.ok) throw new Error("Card not found");
@@ -74,55 +99,55 @@ const BusinessCardPage = () => {
         async function fetchTeam(tIdRaw, mIdRaw) {
             const tId = String(tIdRaw).replace(/[^\d]/g, "");
             const mId = String(mIdRaw).replace(/[^\d]/g, "");
-            const url = `http://localhost:5000/api/teamInfo/public/${tId}/member/${mId}`;
-          
+            const url = `${API_URL}/api/teamInfo/public/${tId}/member/${mId}`;
+
             const res = await fetch(url);
             if (res.status === 404) {
-              setNotice("This team member link doesn't exist or was deleted.", "error", "Not Found");
-              return;
+                setNotice("This team member link doesn't exist or was deleted.", "error", "Not Found");
+                return;
             }
             if (!res.ok) {
-              throw new Error(`Fetch failed (${res.status})`);
+                throw new Error(`Fetch failed (${res.status})`);
             }
-          
+
             const { data } = await res.json();
             const normalized = {
-              id: data.id,
-              team_id: data.team_id,
-              fullname: data.fullname,
-              email: data.email,
-              company_name: data.company_name,
-              job_title: data.job_title,
-              phone_number: data.phone_number,
-              qr: data.qr || null,
-              template: data.component_key || "template1",
-              primary_color: data.primary_color,
-              secondary_color: data.secondary_color,
-              logo: data.logo ? `data:image/png;base64,${data.logo}` : null,
-              kind: "team",
+                id: data.id,
+                team_id: data.team_id,
+                fullname: data.fullname,
+                email: data.email,
+                company_name: data.company_name,
+                job_title: data.job_title,
+                phone_number: data.phone_number,
+                qr: data.qr || null,
+                template: data.component_key || "template1",
+                primary_color: data.primary_color,
+                secondary_color: data.secondary_color,
+                logo: data.logo ? `data:image/png;base64,${data.logo}` : null,
+                kind: "team",
             };
-          
+
             setCard(normalized);
             setIsOwner(false);
-          
+
             const savedKey = `saved_team_${tId}_${mId}`;
             setIsAlreadySaved(localStorage.getItem(savedKey) === "1");
-          }          
+        }
 
         (async () => {
             try {
-            if (id) {
-                // /card/:id
-                await fetchPersonal(id);
-            } else if (teamId && memberId) {
-                // /team/:teamId/member/:memberId
-                await fetchTeam(teamId, memberId);
-            }
+                if (id) {
+                    // /card/:id
+                    await fetchPersonal(id);
+                } else if (teamId && memberId) {
+                    // /team/:teamId/member/:memberId
+                    await fetchTeam(teamId, memberId);
+                }
             } catch (err) {
-            console.error("Error loading card:", err);
+                console.error("Error loading card:", err);
             }
         })();
-        }, [id, teamId, memberId]);
+    }, [id, teamId, memberId]);
 
 
     const handleSaveToReo = async () => {
@@ -227,7 +252,9 @@ END:VCARD`;
         );
 
         try {
-            await new Promise((resolve) => setTimeout(resolve, 500));
+            
+            await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+            await waitForAllImages(container);
 
             const frontEl = container.querySelector('#card-front-capture');
             const backEl = container.querySelector('#card-back-capture');
@@ -243,7 +270,7 @@ END:VCARD`;
                 console.warn('Could not fetch fonts, proceeding without them.');
             }
 
-            const options = { pixelRatio: 2, cacheBust: true, fontEmbedCSS: fontCss };
+            const options = { pixelRatio: 2, cacheBust: true, useCORS: true, fontEmbedCSS: fontCss };
 
             const [frontDataUrl, backDataUrl] = await Promise.all([
                 toPng(frontEl, options),
@@ -313,21 +340,25 @@ END:VCARD`;
     const actions = [
         { label: card.phone_number, href: `tel:${card.phone_number}`, Icon: Phone, type: 'link', dark: true, iconColor: "text-[#1F2937]" },
         { label: card.email, href: `mailto:${card.email}`, Icon: Mail, type: 'link', dark: true, iconColor: "text-[#1F2937]" },
+        {
+            label: 'Save Contact',
+            onClick: handleSaveContact,
+            Icon: Download,
+            type: 'button',
+            dark: true,
+            iconColor: "text-[#1F2937]",
+
+            disabled: !isMobileDevice
+        },
+        { label: 'Save Business Card', onClick: handleSaveBusinessCard, Icon: ImageDown, type: 'button', dark: true, iconColor: "text-[#1F2937]" },
     ];
-
-    // Only add the "Save Contact" button if the user is on a mobile device
-    if (isMobileDevice) {
-        actions.push({ label: 'Save Contact', onClick: handleSaveContact, Icon: Download, type: 'button', dark: true, iconColor: "text-[#1F2937]" });
-    }
-
-    actions.push({ label: 'Save Business Card', onClick: handleSaveBusinessCard, Icon: ImageDown, type: 'button', dark: true, iconColor: "text-[#1F2937]" });
 
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-[#F1F7FE] to-[#DDEBFA] px-4 py-20 flex flex-col justify-center items-center font-sans">
             <div className="w-full max-w-md mx-auto">
                 <div className="rounded-3xl border border-white/80 bg-white/70 shadow-lg p-4 mb-4 text-center">
-                    
+
                     {card.profile_photo ? (
                         <img
                             src={`${card.profile_photo}`}
@@ -353,10 +384,15 @@ END:VCARD`;
                 </div>
 
                 <div className="space-y-4">
-                    {actions.map(({ label, href, Icon, iconColor, onClick, type, dark }, i) => {
+                    {/* 👇 Destructure the new 'disabled' property */}
+                    {actions.map(({ label, href, Icon, iconColor, onClick, type, dark, disabled }, i) => {
                         const content = (
-                            <div className={` rounded-xl p-2 mb-2 flex items-center justify-between border ${dark ? "bg-transparent border-white/60" : "bg-white/70 border-white/80"} ${i % 2 !== 0 ? 'flex-row-reverse' : ''} gap-1`}>
-                                <div className={`flex-1 h-8 rounded-lg hover:bg-opacity-90 transition-transform transform hover:scale-105 px-3 flex items-center justify-center text-base font-semibold ${dark ? "bg-[#1F2937] text-white" : "bg-white text-[#1F2937] border border-slate-200"}`}>
+                            // 👇 Add a helpful tooltip and opacity for disabled state
+                            <div
+                                title={disabled ? "Only available on mobile devices" : ""}
+                                className={`rounded-xl p-2 mb-2 flex items-center justify-between border ${dark ? "bg-transparent border-white/60" : "bg-white/70 border-white/80"} ${i % 2 !== 0 ? 'flex-row-reverse' : ''} gap-1 ${disabled ? "opacity-50" : ""}`}
+                            >
+                                <div className={`flex-1 h-8 rounded-lg transition-transform transform px-3 flex items-center justify-center text-base font-semibold ${dark ? "bg-[#1F2937] text-white" : "bg-white text-[#1F2937] border border-slate-200"} ${!disabled && "hover:bg-opacity-90 hover:scale-105"}`}>
                                     {label}
                                 </div>
                                 <div className={`flex items-center justify-center rounded-lg w-8 h-8 ${dark ? "bg-white/10" : "bg-[#EDF2F7] border border-white/70"}`}>
@@ -371,7 +407,17 @@ END:VCARD`;
                         if (type === 'link') {
                             return <a key={label} href={href} target="_blank" rel="noopener noreferrer">{content}</a>;
                         }
-                        return <div key={label} onClick={onClick} className="cursor-pointer">{content}</div>;
+
+                        // 👇 Only attach onClick if not disabled, and change cursor style
+                        return (
+                            <div
+                                key={label}
+                                onClick={disabled ? null : onClick}
+                                className={disabled ? "cursor-not-allowed" : "cursor-pointer"}
+                            >
+                                {content}
+                            </div>
+                        );
                     })}
                 </div>
                 <div className="text-center mt-6 mb-1">

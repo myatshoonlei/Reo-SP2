@@ -87,11 +87,13 @@ const Template5 = (rawProps) => {
         {/* Bottom: Logo and Contact */}
         <div className="flex justify-between items-end">
           <div className="flex items-center space-x-3">
+            {logo && (
             <img
               src={logo}
               alt="Logo"
               className="w-12 h-12 rounded-full object-cover bg-white/30 p-1"
             />
+            )}
             <span className="font-bold">{company_name}</span>
           </div>
           <div className="text-right text-xs opacity-90">
