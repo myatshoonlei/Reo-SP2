@@ -82,12 +82,14 @@ const Template4 = (rawProps) => {
       <div className="relative z-10 flex flex-col justify-between h-full p-4">
         {/* Top: Company and Logo */}
         <div className="flex items-center space-x-3">
+          {logo && (
           <img
             src={logo}
             alt="Logo"
             className="w-10 h-10 rounded-full object-cover p-1"
             style={{ backgroundColor: primary_color }}
           />
+          )}
           <span className="font-semibold">{company_name}</span>
         </div>
 

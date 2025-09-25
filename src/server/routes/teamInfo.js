@@ -16,8 +16,8 @@ const cleanPhone = (v) =>
 /* ---------- utility to build the public URL ---------- */
 function getBasePublicUrl(req) {
   // Always prefer an explicit public URL (no trailing slash)
-  if (process.env.PUBLIC_BASE_URL) {
-    return process.env.PUBLIC_BASE_URL.replace(/\/+$/, "");
+  if (process.env.VITE_PUBLIC_BASE_URL) {
+    return process.env.VITE_PUBLIC_BASE_URL.replace(/\/+$/, "");
   }
 
   // Respect proxies if present (useful in prod behind Nginx)

@@ -20,6 +20,8 @@ import QRCodeGenerator from "./components/QRCodeGenerator";
 import EditCardPage from "./pages/EditCardPage";
 import ContactsPage from "./pages/ContactsPage";
 import TeamMembersPage from "./pages/TeamMembersPage";
+import EditMyLinks from "./pages/EditMyLinks";
+import EditContactSide from "./pages/EditContactSide";
 
 // Component to handle body scroll lock
 function ScrollController() {
@@ -68,6 +70,8 @@ function AppContent() {
           <Route path="/contacts" element={<ContactsPage />} />
           <Route path="/verify-email-sent" element={<VerifyEmailSent />} />
           <Route path="/verify-email/:token" element={<VerifyEmail />} />
+          <Route path="/edit/mylinks/:cardId" element={<EditMyLinks />} />
+          <Route path="/edit/contact/:cardId" element={<EditContactSide />} />
 
           <Route path="/card/:id" element={<BusinessCardPage key={location.pathname} />} />
           <Route path="/team/:teamId/member/:memberId" element={<BusinessCardPage key={location.pathname} />} />

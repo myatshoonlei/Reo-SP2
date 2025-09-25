@@ -88,11 +88,13 @@ const Template2 = (rawProps) => {
         className="relative z-15 w-1/3 flex flex-col items-center justify-center p-5 text-white"
         style={{ backgroundColor: primary_color }}
       >
+        {logo && (
         <img
             src={logo || "/placeholder.svg"}
             alt="Logo"
             className="w-12 h-12 rounded-full object-cover border-2 border-white/50"
           />
+        )}
       </div>
 
       {/* Right Section: Personal Details - Width increased */}

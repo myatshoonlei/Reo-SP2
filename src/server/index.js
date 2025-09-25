@@ -14,6 +14,7 @@ import verifyEmailRouter from './routes/verifyEmailRoute.js';
 import profilePhotoUploadRouter from './routes/profilePhotoUpload.js';
 import contactRoutes from './routes/contactRoute.js';
 
+
 // If you're on Node < 18, uncomment the next line and `npm i node-fetch`
 // import fetch from 'node-fetch';
 
@@ -23,7 +24,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: ["http://localhost:5173", "https://cylinder-dense-kurt-foam.trycloudflare.com"],
+  origin: ["http://localhost:5173", "https://newspaper-jonathan-mats-school.trycloudflare.com"],
 
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
@@ -43,6 +44,7 @@ app.use('/api/verify-email', verifyEmailRouter);
 app.use("/api/card", cardRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/profile-photo', profilePhotoUploadRouter);
+
 
 // ---------- Font CSS proxy (used by html-to-image) ----------
 app.get('/api/proxy/font-css', async (req, res) => {

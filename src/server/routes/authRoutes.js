@@ -13,7 +13,7 @@ import { verifyEmail } from '../../utils/verifyEmail.js';
 const app = express();
 
 app.use(cors({
-  origin: ['http://localhost:5173',"https://come-pastor-considered-ends.trycloudflare.com"],
+  origin: ['http://localhost:5173',"https://newspaper-jonathan-mats-school.trycloudflare.com"],
   credentials: true
 }));
 app.use(express.json());

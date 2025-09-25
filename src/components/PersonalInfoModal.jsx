@@ -385,12 +385,12 @@ const PersonalInfoModal = () => {
                 />
               </div>
               <div>
-                <label className="text-sm font-semibold text-gray-700 block mb-1">Company Name</label>
+                <label className="text-sm font-semibold text-gray-700 block mb-1">Organization Name</label>
                 <input
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
                   type="text"
-                  placeholder="Enter Your Business Name"
+                  placeholder="Enter Your Organization Name"
                   className="w-full px-3 py-2 border border-gray-400 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>

@@ -141,16 +141,16 @@ const TeamCompanyModal = ({
     <div className="fixed inset-0 z-50 flex justify-center items-center bg-white/30 backdrop-blur-sm">
       <div className="bg-white rounded-xl p-6 shadow-lg w-[340px]">
         <h2 className="font-semibold text-gray-600 text-sm mb-1 text-center">Step 1</h2>
-        <h3 className="text-lg font-bold text-[#0b2447] mb-1 text-center">Company Details</h3>
+        <h3 className="text-lg font-bold text-[#0b2447] mb-1 text-center">Organization Details</h3>
         <p className="text-xs text-gray-500 mb-4 text-center">
-          Create Business Cards for your team in seconds
+          Create Business Cards for your organization in seconds
         </p>
 
         <div>
-          <label className="text-sm font-semibold text-gray-700 block mb-1">Company Name</label>
+          <label className="text-sm font-semibold text-gray-700 block mb-1">Organization Name</label>
           <input
             type="text"
-            placeholder="Enter Your Business Name"
+            placeholder="Enter Your Organization Name"
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-md mb-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
