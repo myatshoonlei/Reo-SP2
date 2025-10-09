@@ -1,0 +1,97 @@
+Table "contacts" {
+  "id" integer [pk, not null]
+  "user_id" integer [not null]
+  "saved_card_id" integer
+  "created_at" timestamp [default: `CURRENT_TIMESTAMP`]
+  "saved_member_card_id" integer
+
+  Indexes {
+    (user_id, saved_card_id) [unique, name: "contacts_user_id_saved_card_id_key"]
+    (user_id, saved_member_card_id) [unique, name: "contacts_user_id_saved_member_card_id_key"]
+  }
+}
+
+Table "personal_cards" {
+  "id" integer [pk, not null]
+  "company_name" "character varying(100)"
+  "job_title" "character varying(100)"
+  "phone_number" "character varying(20)"
+  "company_address" "character varying(255)"
+  "user_id" integer
+  "logo" bytea
+  "primary_color" "character varying(20)"
+  "secondary_color" "character varying(20)"
+  "fullname" "character varying(100)"
+  "email" "character varying(100)"
+  "template_id" uuid
+  "component_key" text
+  "created_at" timestamp [default: `CURRENT_TIMESTAMP`]
+  "logo_mime" text
+  "logo_position" jsonb
+  "name_position" jsonb
+  "with_qr_code" boolean [default: false]
+  "qr" text
+  "profile_photo" bytea
+  "font_family" text
+}
+
+Table "team_cards" {
+  "teamid" integer [unique, not null]
+  "userid" integer [not null]
+  "company_name" "character varying(100)"
+  "logo" bytea
+  "primary_color" "character varying(20)"
+  "secondary_color" "character varying(20)"
+  "id" integer [pk, not null]
+  "template_id" uuid
+  "created_at" timestamp [not null, default: `now()`]
+}
+
+Table "team_members" {
+  "id" integer [pk, not null]
+  "team_id" integer [not null]
+  "fullname" "character varying(255)"
+  "job_title" "character varying(255)"
+  "email" "character varying(255)"
+  "phone_number" "character varying(255)"
+  "company_name" "character varying(255)"
+  "qr" text
+  "company_address" "character varying(255)"
+}
+
+Table "template" {
+  "id" uuid [pk, not null, default: `gen_random_uuid()`]
+  "name" text [not null]
+  "component_key" text [not null]
+  "preview_url" text
+  "is_active" boolean [default: true]
+}
+
+Table "used_tokens" {
+  "token" text [pk, not null]
+  "used_at" timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+Table "users" {
+  "id" integer [pk, not null]
+  "fullname" "character varying(100)"
+  "email" "character varying(100)" [unique]
+  "password" "character varying(100)"
+  "logo" bytea
+  "picture" text
+  "isverified" boolean [default: false]
+  "verification_code" "character varying(255)"
+  "verification_code_expiry" timestamp
+}
+
+Ref "contacts_saved_card_id_fkey":"personal_cards"."id" < "contacts"."saved_card_id" [delete: cascade]
+
+Ref "contacts_saved_member_card_id_fkey":"team_members"."id" < "contacts"."saved_member_card_id" [delete: cascade]
+
+Ref "contacts_user_id_fkey":"users"."id" < "contacts"."user_id" [delete: cascade]
+
+Ref "myself_cards_user_id_fkey":"users"."id" < "personal_cards"."user_id"
+
+Ref "personal_cards_template_id_fkey":"template"."id" < "personal_cards"."template_id"
+
+Ref "team_cards_template_id_fkey":"template"."id" < "team_cards"."template_id"

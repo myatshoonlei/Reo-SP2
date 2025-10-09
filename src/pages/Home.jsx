@@ -63,6 +63,7 @@ export default function Home() {
   const [teamCounts, setTeamCounts] = useState({});
 
   useEffect(() => {
+  
     if (location.state?.fromSave && location.state?.cards) {
       console.log("Using cards from navigation state for instant display");
   
@@ -93,6 +94,7 @@ export default function Home() {
     try {
       const res = await fetch(`${API_URL}/api/personal-card/all`, {
         headers: { Authorization: `Bearer ${token}` },
+        
       });
   
       if (!res.ok) {

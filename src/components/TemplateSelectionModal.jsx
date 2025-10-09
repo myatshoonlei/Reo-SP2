@@ -308,7 +308,11 @@ export default function TemplateSelectionModal() {
         secondaryColor: cardInfo.secondary_color,
         logo: compressedLogo,
         qr: qrDataUrl,
-      };
+
+        
+
+      }
+
 
       const res = await fetch(`${API_URL}/api/personal-card`, {
         method: "POST",
@@ -328,6 +332,7 @@ export default function TemplateSelectionModal() {
           secondaryColor: cardInfo.secondary_color,
           croppedLogo: compressedLogo,
           qr: qrDataUrl,
+          
         },
       })
     } catch (e) {

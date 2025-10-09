@@ -11,7 +11,7 @@ import { verifyEmail } from '../../utils/verifyEmail.js';
 const app = express();
 
 app.use(cors({
-  origin: ['http://localhost:5173',"https://sky-attendance-highest-pmid.trycloudflare.com"],
+  origin: ['http://localhost:5173','https://promises-chronic-greatly-mazda.trycloudflare.com'],
   credentials: true
 }));
 app.use(express.json());
@@ -21,7 +21,6 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 dotenv.config();
 
 const router = express.Router();
-
 
 
 // Signup Route

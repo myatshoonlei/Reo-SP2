@@ -23,7 +23,10 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: ["http://localhost:5173", "https://sky-attendance-highest-pmid.trycloudflare.com"],
+
+  origin: ["http://localhost:5173","https://promises-chronic-greatly-mazda.trycloudflare.com"],
+
+
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
