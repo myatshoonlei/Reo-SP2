@@ -26,10 +26,7 @@ Table "personal_cards" {
   "template_id" uuid
   "component_key" text
   "created_at" timestamp [default: `CURRENT_TIMESTAMP`]
-  "logo_mime" text
-  "logo_position" jsonb
-  "name_position" jsonb
-  "with_qr_code" boolean [default: false]
+  
   "qr" text
   "profile_photo" bytea
   "font_family" text
@@ -57,6 +54,10 @@ Table "team_members" {
   "company_name" "character varying(255)"
   "qr" text
   "company_address" "character varying(255)"
+
+  Indexes {
+    team_id [type: btree, name: "team_members_team_id_idx"]
+  }
 }
 
 Table "template" {
@@ -70,6 +71,7 @@ Table "template" {
 Table "used_tokens" {
   "token" text [pk, not null]
   "used_at" timestamp [default: `CURRENT_TIMESTAMP`]
+  "user_id" integer
 }
 
 Table "users" {
@@ -77,11 +79,10 @@ Table "users" {
   "fullname" "character varying(100)"
   "email" "character varying(100)" [unique]
   "password" "character varying(100)"
-  "logo" bytea
+
   "picture" text
   "isverified" boolean [default: false]
-  "verification_code" "character varying(255)"
-  "verification_code_expiry" timestamp
+
 }
 
 Ref "contacts_saved_card_id_fkey":"personal_cards"."id" < "contacts"."saved_card_id" [delete: cascade]
@@ -95,3 +96,9 @@ Ref "myself_cards_user_id_fkey":"users"."id" < "personal_cards"."user_id"
 Ref "personal_cards_template_id_fkey":"template"."id" < "personal_cards"."template_id"
 
 Ref "team_cards_template_id_fkey":"template"."id" < "team_cards"."template_id"
+
+Ref "team_cards_userid_fkey":"users"."id" < "team_cards"."userid" [delete: cascade]
+
+Ref "team_members_team_id_fkey":"team_cards"."teamid" < "team_members"."team_id" [delete: cascade]
+
+Ref "used_tokens_user_id_fkey":"users"."id" < "used_tokens"."user_id" [delete: cascade]
