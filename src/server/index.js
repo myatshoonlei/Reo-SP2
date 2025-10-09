@@ -24,7 +24,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: ["http://localhost:5173", "https://newspaper-jonathan-mats-school.trycloudflare.com"],
+  origin: ["http://localhost:5173","https://promises-chronic-greatly-mazda.trycloudflare.com"],
 
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true

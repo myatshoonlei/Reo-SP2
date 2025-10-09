@@ -27,8 +27,8 @@ function SmartText({
   allowWrap = false,
   className = "",
   style = {},
-  titleOnHover = false,
-  recalcKey,
+  titleOnHover = false,   // turn off tooltip by default
+  recalcKey,              // 🔹 new: forces recompute when this changes
 }) {
   const ref = useRef(null);
   const [size, setSize] = useState(desired ?? defaultStart);
@@ -55,6 +55,7 @@ function SmartText({
       el.style.fontSize = `${current}px`;
     }
     setSize(Math.max(min, current));
+  // 🔹 re-run when these change, including recalcKey
   }, [children, desired, defaultStart, min, step, autoFit, allowWrap, recalcKey]);
 
   return (
@@ -66,7 +67,7 @@ function SmartText({
         fontSize: `${size}px`,
         overflow: "hidden",
         whiteSpace: allowWrap ? "normal" : "nowrap",
-        textOverflow: "clip", // no ellipsis
+        textOverflow: "clip",   // 🔹 no ellipsis
       }}
       title={titleOnHover && typeof children === "string" ? children : undefined}
     >
@@ -92,7 +93,8 @@ const Template1 = (rawProps) => {
   // font family
   const font_family     = rawProps.font_family ?? rawProps.fontFamily ?? FALLBACK_STACK;
 
-  // sizes (px)
+  // sizes (px). You can store these in DB and pass through props.
+  // If not provided, defaults below are used.
   const sizeName        = toPx(rawProps.size_name ?? rawProps.sizeName, 20);
   const sizeTitle       = toPx(rawProps.size_title ?? rawProps.sizeTitle, 16);
   const sizeCompany     = toPx(rawProps.size_company ?? rawProps.sizeCompany, 15);
@@ -100,13 +102,16 @@ const Template1 = (rawProps) => {
   const sizePhone       = toPx(rawProps.size_phone ?? rawProps.sizePhone, 14);
   const sizeAddress     = toPx(rawProps.size_address ?? rawProps.sizeAddress, 13);
 
-  // mins (px) for auto-fit boundaries
+  // mins (px) for auto-fit boundaries (override via props if you want)
   const minName         = toPx(rawProps.min_name ?? rawProps.minName, 12);
   const minTitle        = toPx(rawProps.min_title ?? rawProps.minTitle, 10);
   const minCompany      = toPx(rawProps.min_company ?? rawProps.minCompany, 10);
   const minEmail        = toPx(rawProps.min_email ?? rawProps.minEmail, 9);
   const minPhone        = toPx(rawProps.min_phone ?? rawProps.minPhone, 11);
   const minAddress      = toPx(rawProps.min_address ?? rawProps.minAddress, 9);
+
+  // global toggle to disable auto-fit (defaults true)
+  const autoFit         = rawProps.auto_fit ?? rawProps.autoFit ?? true;
 
   // assets / side
   const logo            = getLogoSrc(rawProps.logo) || rawProps.logoUrl || "/placeholder.svg";
@@ -175,10 +180,9 @@ const Template1 = (rawProps) => {
           <div className="flex-1 min-w-0 text-right">
             <SmartText
               desired={sizeName}
-              min={Math.min(10, minName ?? 12)} // allow smaller if needed
+              min={minName}
               defaultStart={20}
-              autoFit
-              recalcKey={font_family}
+              autoFit={autoFit}
               className="font-extrabold leading-tight"
             >
               {fullname || "Full Name"}
@@ -188,8 +192,7 @@ const Template1 = (rawProps) => {
               desired={sizeTitle}
               min={minTitle}
               defaultStart={16}
-              autoFit
-              recalcKey={font_family}
+              autoFit={autoFit}
               className="opacity-80 font-medium"
             >
               {job_title || "Job Title"}
@@ -199,23 +202,21 @@ const Template1 = (rawProps) => {
               desired={sizeCompany}
               min={minCompany}
               defaultStart={15}
-              autoFit
-              recalcKey={font_family}
+              autoFit={autoFit}
               className="opacity-70 font-semibold mt-1"
             >
               {company_name || "Company"}
             </SmartText>
           </div>
-        </div> {/* ✅ close header flex container */}
+        </div>
 
-        {/* Contact block */}
+        {/* Contact info */}
         <div className="text-sm leading-6 space-y-1 mt-2 min-w-0">
           <SmartText
             desired={sizeEmail}
             min={minEmail}
             defaultStart={14}
-            autoFit
-            recalcKey={font_family}
+            autoFit={autoFit}
             className="opacity-90"
           >
             {email || "email@example.com"}
@@ -225,8 +226,7 @@ const Template1 = (rawProps) => {
             desired={sizePhone}
             min={minPhone}
             defaultStart={14}
-            autoFit
-            recalcKey={font_family}
+            autoFit={autoFit}
             className="opacity-90"
           >
             {phone_number || "+1 (555) 123-4567"}
@@ -238,9 +238,8 @@ const Template1 = (rawProps) => {
                 desired={sizeAddress}
                 min={minAddress}
                 defaultStart={13}
-                autoFit
+                autoFit={autoFit}
                 allowWrap
-                recalcKey={font_family}
                 className="opacity-80 leading-snug"
               >
                 {company_address}
@@ -251,7 +250,7 @@ const Template1 = (rawProps) => {
       </div>
     </div>
   );
-}
+};
 
 export default Template1;
 

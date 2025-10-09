@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Phone, Mail, Download, Building, ImageDown, UserPlus, CheckCircle, Info, AlertTriangle, X } from "lucide-react";
+import { Phone, Mail, Download, Building, ImageDown, User, CheckCircle, Info, AlertTriangle, X } from "lucide-react";
 import { toPng } from 'html-to-image';
 import ReactDOM from 'react-dom/client';
 
@@ -343,7 +343,7 @@ END:VCARD`;
         {
             label: 'Save Contact',
             onClick: handleSaveContact,
-            Icon: Download,
+            Icon: User,
             type: 'button',
             dark: true,
             iconColor: "text-[#1F2937]",
