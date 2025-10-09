@@ -6,6 +6,8 @@ import Template3 from "./templates/Template3"
 import Template4 from "./templates/Template4"
 import Template5 from "./templates/Template5"
 import Template6 from "./templates/Template6"
+import TemplateVmes from "./templates/TemplateVmes"
+
 import { Phone, Mail, Building, Scan, User, ImageDown } from "lucide-react"
 
 const templateMap = {
@@ -15,6 +17,7 @@ const templateMap = {
   template4: Template4,
   template5: Template5,
   template6: Template6,
+  templatevmes: TemplateVmes,
 }
 
 // unify fields (camelCase & snake_case) and pass EVERYTHING needed to templates
@@ -78,7 +81,7 @@ export default function PreviewModal() {
     primaryColor,
     secondaryColor,
     logoUrl: card.logoUrl ?? croppedLogo ?? card.logo,
-  })
+  });
 
   const handleBack = () => {
     // go back to Template Selection (Step 5), preserve state
@@ -321,5 +324,5 @@ export default function PreviewModal() {
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -8,6 +8,7 @@ import Template3 from "./templates/Template3"
 import Template4 from "./templates/Template4"
 import Template5 from "./templates/Template5"
 import Template6 from "./templates/Template6"
+// import TemplateVmes from "./templates/TemplateVmes"
 
 import { getLogoSrc } from "../utils/logoUtils"
 import { compressImage, fileToBase64 } from "../utils/imageUtils"
@@ -106,7 +107,7 @@ export default function TemplateSelectionModal() {
             company_name: team?.company_name || member?.company_name || "Company",
             email: member?.email || "email@example.com",
             phone_number: member?.phone_number || "123-456-7890",
-            company_address: "",
+            company_address: member?.company_address || team?.company_address || "",
             logo: getLogoSrc(team?.logo) || "/default-logo.png",
             primary_color: sanitizeColor(team?.primary_color),
             secondary_color: sanitizeColor(team?.secondary_color),
@@ -200,7 +201,7 @@ export default function TemplateSelectionModal() {
       <div className="fixed inset-0 z-50 flex justify-center items-center bg-white/30 backdrop-blur-sm">
         <div className="bg-white rounded-xl p-8 shadow-xl">Loading…</div>
       </div>
-    )
+    );
   }
 
   const templateMap = {
@@ -210,6 +211,7 @@ export default function TemplateSelectionModal() {
     template4: Template4,
     template5: Template5,
     template6: Template6,
+    // templatevmes: TemplateVmes,
   }
 
   const goBack = () => {
@@ -251,7 +253,6 @@ export default function TemplateSelectionModal() {
       if (flow === "team") {
         const teamId = getTeamId()
         if (!teamId) throw new Error("Missing teamId for team flow")
-
         await fetch(`${API_URL}/api/teamcard/${teamId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -271,7 +272,6 @@ export default function TemplateSelectionModal() {
           headers: { Authorization: `Bearer ${token}` },
         })
         const freshMember = (await freshRes.json()).data
-
         navigate("/create/preview", {
           state: {
             cardType: "team",
@@ -284,7 +284,7 @@ export default function TemplateSelectionModal() {
               company_name: cardInfo.company_name,
               email: freshMember.email,
               phone_number: freshMember.phone_number,
-              company_address: cardInfo.company_address || "",
+              company_address: freshMember.company_address || cardInfo.company_address || "",
               primary_color: cardInfo.primary_color,
               secondary_color: cardInfo.secondary_color,
               logo: compressedLogo,
@@ -295,7 +295,6 @@ export default function TemplateSelectionModal() {
 
         return
       }
-
       const payload = {
         id: cardInfo.id,
         fullname: cardInfo.fullname,
@@ -309,17 +308,19 @@ export default function TemplateSelectionModal() {
         secondaryColor: cardInfo.secondary_color,
         logo: compressedLogo,
         qr: qrDataUrl,
+
         
 
       }
+
 
       const res = await fetch(`${API_URL}/api/personal-card`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),
         cache: "no-store",
-      })
-      if (!res.ok) throw new Error(`Save failed: ${res.status}`)
+      });
+      if (!res.ok) throw new Error(`Save failed: ${res.status}`);
 
       navigate("/create/preview", {
         state: {
@@ -339,6 +340,11 @@ export default function TemplateSelectionModal() {
     }
   }
 
+  // Filter templates to only show those with a corresponding component
+  const availableTemplates = templates.filter(
+    (t) => templateMap[t.component_key]
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex justify-center items-center bg-white/30 backdrop-blur-sm transition-opacity duration-300">
       <div className="bg-white rounded-xl p-8 shadow-xl w-[90vw] max-w-[1200px] max-h-[90vh] flex flex-col">
@@ -347,20 +353,20 @@ export default function TemplateSelectionModal() {
         <p className="text-xs text-gray-500 mb-4 text-center">Pick a template. You can also customize it later.</p>
 
         <div className=" grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 flex-1 overflow-y-auto pr-2 pb-4 mt-10">
-          {templates.map((t) => {
-            const T = templateMap[t.component_key]
+        {availableTemplates.map((t) => { // Use the filtered array here
+            const T = templateMap[t.component_key];
             return (
               <div
                 key={t.id}
                 onClick={() => setSelectedTemplate(t.id)}
                 className={`cursor-pointer rounded-xl border flex items-center justify-center 
-    transition-all duration-200 
-    ${selectedTemplate === t.id
-      ? "border-blue-500 shadow-lg bg-blue-200 " // This is the selected style
-      : "border-gray-300 hover:border-blue-400 hover:shadow-md hover:scale-105"
-                }`}
+                  transition-all duration-200 
+                  ${selectedTemplate === t.id
+                    ? "border-blue-500 shadow-lg bg-blue-200 "
+                    : "border-gray-300 hover:border-blue-400 hover:shadow-md hover:scale-105"
+                  }`}
               >
-                {T && cardInfo && <T {...cardInfo} />}
+                {T && cardInfo && <T {...cardInfo} companyAddress={cardInfo.company_address} />}
               </div>
             )
           })}
@@ -387,5 +393,5 @@ export default function TemplateSelectionModal() {
         </div>
       </div>
     </div>
-  )
+  );
 }

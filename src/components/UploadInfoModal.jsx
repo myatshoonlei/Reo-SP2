@@ -131,6 +131,7 @@ export default function UploadInfoModal() {
             .replace(/[^\d+()\-.\s]/g, "")
             .replace(/\s+/g, " ")
             .trim(),
+          companyAddress: clean(r.companyAddress),
         }));
 
         const token = localStorage.getItem("token");

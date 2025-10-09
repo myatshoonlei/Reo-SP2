@@ -73,14 +73,12 @@ const PersonalInfoModal = () => {
   // Load existing card data
   const loadCardData = async (id) => {
     if (!id || !token) return;
-
     setLoading(true);
     try {
       console.log(`Loading card data for ID: ${id}`);
       const res = await fetch(`${API_BASE}/api/personal-card/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       if (!res.ok) {
         if (res.status === 404) {
           console.log(`Card ${id} not found, clearing localStorage`);
@@ -90,7 +88,6 @@ const PersonalInfoModal = () => {
         }
         throw new Error(`HTTP ${res.status}`);
       }
-
       const { data } = await res.json();
       console.log('Loaded card data:', data);
 
@@ -102,7 +99,6 @@ const PersonalInfoModal = () => {
       setJobTitle(data.jobTitle || '');
       setPhoneNumber(data.phoneNumber || '');
       setCompanyAddress(data.companyAddress || '');
-
       // Ensure localStorage is in sync
       localStorage.setItem('personal_card_id', data.id.toString());
     } catch (error) {
@@ -123,7 +119,6 @@ const PersonalInfoModal = () => {
       incomingId,
       locationState: location.state
     });
-
     if (comingFromCardType) {
       // Starting fresh from card-type selection → clear everything
       console.log('🧹 Coming from card type selection - clearing form');
@@ -358,9 +353,6 @@ const PersonalInfoModal = () => {
     setSubmitting(false);
   }
 };
-
-
-
 
   return (
     <div className="fixed inset-0 bg-blue bg-opacity-60 flex justify-center items-center z-50">

@@ -14,6 +14,7 @@ import Template3 from "../components/templates/Template3";
 import Template4 from "../components/templates/Template4";
 import Template5 from "../components/templates/Template5";
 import Template6 from "../components/templates/Template6";
+import TemplateVmes from "../components/templates/TemplateVmes";
 
 import { getLogoSrc } from "../utils/logoUtils";
 
@@ -28,6 +29,7 @@ export default function Home() {
     template4: Template4,
     template5: Template5,
     template6: Template6,
+    templatevmes: TemplateVmes, // <-- Add this line
   };
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
   const BASE = import.meta.env.VITE_PUBLIC_BASE_URL || window.location.origin;

@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator dbml {
+  provider = "prisma-dbml-generator"
+  output   = "./diagram.dbml"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model contacts {
+  id             Int            @id @default(autoincrement())
+  user_id        Int
+  saved_card_id  Int
+  created_at     DateTime?      @default(now()) @db.Timestamptz(6)
+  personal_cards personal_cards @relation(fields: [saved_card_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users          users          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, saved_card_id])
+}
+
+model personal_cards {
+  id              Int        @id(map: "myself_cards_pkey") @default(autoincrement())
+  company_name    String?    @db.VarChar(100)
+  job_title       String?    @db.VarChar(100)
+  phone_number    String?    @db.VarChar(20)
+  company_address String?    @db.VarChar(255)
+  user_id         Int?
+  logo            Bytes?
+  primary_color   String?    @db.VarChar(20)
+  secondary_color String?    @db.VarChar(20)
+  fullname        String?    @db.VarChar(100)
+  email           String?    @db.VarChar(100)
+  template_id     String?    @db.Uuid
+  component_key   String?    @db.VarChar(255)
+  created_at      DateTime?  @default(now()) @db.Timestamptz(6)
+  qr              String?
+  profile_photo   Bytes?
+  font_family     String?
+  contacts        contacts[]
+  template        template?  @relation(fields: [template_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_personal_template")
+  users           users?     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "myself_cards_user_id_fkey")
+}
+
+model team_cards {
+  teamid          Int            @unique @default(autoincrement())
+  userid          Int?
+  company_name    String         @db.VarChar(100)
+  logo            Bytes?
+  primary_color   String?        @default("") @db.VarChar(20)
+  secondary_color String?        @default("") @db.VarChar(20)
+  id              Int            @id @default(autoincrement())
+  template_id     String?        @db.Uuid
+  created_at      DateTime       @default(now()) @db.Timestamptz(6)
+  template        template?      @relation(fields: [template_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users           users?         @relation(fields: [userid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  team_members    team_members[]
+}
+
+model team_members {
+  id              Int         @id @default(autoincrement())
+  team_id         Int?
+  fullname        String?     @db.VarChar(255)
+  job_title       String?     @db.VarChar(255)
+  email           String?     @db.VarChar(255)
+  phone_number    String?     @db.VarChar(255)
+  company_name    String?     @db.VarChar(255)
+  qr              String?
+  company_address String?     @db.VarChar(255)
+  team_cards      team_cards? @relation(fields: [team_id], references: [teamid], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model template {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String
+  component_key  String
+  is_active      Boolean?         @default(true)
+  personal_cards personal_cards[]
+  team_cards     team_cards[]
+}
+
+model users {
+  id             Int              @id @default(autoincrement())
+  fullname       String?          @db.VarChar(100)
+  email          String?          @unique @db.VarChar(100)
+  password       String?          @db.VarChar(100)
+  picture        String?
+  isverified     Boolean?         @default(false)
+  contacts       contacts[]
+  personal_cards personal_cards[]
+  team_cards     team_cards[]
+}
