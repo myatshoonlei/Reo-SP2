@@ -13,7 +13,6 @@ const cleanPhone = (v) =>
   clean(v).replace(/[^\d+()\-.\s]/g, "").replace(/\s+/g, " ").trim();
 
 /* ---------- utility to build the public URL ---------- */
-/* ---------- utility to build the public URL ---------- */
 function getBasePublicUrl(req) {
   // Always prefer an explicit public URL (no trailing slash)
   if (process.env.VITE_PUBLIC_BASE_URL) {
@@ -80,10 +79,11 @@ router.post("/", verifyToken, async (req, res) => {
     await pool.query("DELETE FROM team_members WHERE team_id = $1", [teamId]);
 
     for (const m of members) {
+      // in POST /api/teamInfo (inside the for..of members loop)
       await pool.query(
         `INSERT INTO team_members
-         (team_id, fullname, job_title, email, phone_number, company_name)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
+        (team_id, fullname, job_title, email, phone_number, company_name, company_address)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [
           teamId,
           clean(m.fullname),
@@ -91,6 +91,7 @@ router.post("/", verifyToken, async (req, res) => {
           cleanEmail(m.email),
           cleanPhone(m.phoneNumber || m.phone_number),
           company_name,
+          clean(m.companyAddress || m.company_address),  // <-- NEW
         ]
       );
     }
@@ -130,7 +131,8 @@ router.get("/first", verifyToken, async (req, res) => {
   if (!teamId) return res.status(400).json({ error: "teamId is required" });
   try {
     const q = `
-      SELECT id, team_id, fullname, job_title, email, phone_number, company_name, qr
+      SELECT id, team_id, fullname, job_title, email, phone_number,
+         company_name, company_address, qr
       FROM team_members
       WHERE team_id = $1
       ORDER BY id ASC
@@ -159,6 +161,7 @@ router.get("/:teamId/members", verifyToken, async (req, res) => {
         m.email,
         m.phone_number,
         m.company_name,
+        m.company_address,
         m.qr,
 
         tc.template_id,
@@ -220,7 +223,7 @@ router.get("/public/:teamId/member/:memberId", async (req, res) => {
 
     const q = `
       SELECT
-        m.id, m.team_id, m.fullname, m.job_title, m.email, m.phone_number, m.company_name, m.qr,
+        m.id, m.team_id, m.fullname, m.job_title, m.email, m.phone_number, m.company_name,  m.company_address, m.qr,
         tc.template_id, tc.primary_color, tc.secondary_color, tc.logo,
         t.component_key
       FROM team_members m
