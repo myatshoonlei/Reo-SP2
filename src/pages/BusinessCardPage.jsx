@@ -27,26 +27,26 @@ const templateMap = {
 
 
 const preloadImage = (src) =>
-  new Promise((res) => {
-    if (!src) return res();
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.decoding = "sync";
-    img.onload = () => res();
-    img.onerror = () => res(); // don't hang
-    img.src = src;
-  });
+    new Promise((res) => {
+        if (!src) return res();
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.decoding = "sync";
+        img.onload = () => res();
+        img.onerror = () => res(); // don't hang
+        img.src = src;
+    });
 
 const waitForAllImages = (rootEl) =>
-  Promise.all(
-    Array.from(rootEl.querySelectorAll("img")).map((img) => {
-      if (img.complete && img.naturalWidth) return;
-      return new Promise((r) => {
-        img.onload = () => r();
-        img.onerror = () => r();
-      });
-    })
-  );
+    Promise.all(
+        Array.from(rootEl.querySelectorAll("img")).map((img) => {
+            if (img.complete && img.naturalWidth) return;
+            return new Promise((r) => {
+                img.onload = () => r();
+                img.onerror = () => r();
+            });
+        })
+    );
 
 
 const BusinessCardPage = () => {
@@ -161,11 +161,16 @@ const BusinessCardPage = () => {
         setIsSaving(true);
         const token = (localStorage.getItem("token") || "").replace(/"/g, "");
 
+        const body =
+            card.kind === "team"
+                ? { memberCardId: card.id } // for team member
+                : { contactCardId: card.id }; // for personal card
+
         try {
             const res = await fetch(`${API_URL}/api/contacts/add`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ contactCardId: card.id })
+                body: JSON.stringify(body),
             });
 
             if (res.status === 201) {
@@ -217,9 +222,9 @@ END:VCARD`;
     };
 
     // Helper function to show image overlay when other methods fail
-const showImageOverlay = (imageData, fileName) => {
-    const overlay = document.createElement('div');
-    overlay.innerHTML = `
+    const showImageOverlay = (imageData, fileName) => {
+        const overlay = document.createElement('div');
+        overlay.innerHTML = `
         <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
             <div style="background: white; border-radius: 10px; padding: 20px; max-width: 90%; max-height: 80%; overflow: auto; text-align: center;">
                 <h3 style="margin: 0 0 15px 0; color: #333;">Your Business Card</h3>
@@ -229,28 +234,28 @@ const showImageOverlay = (imageData, fileName) => {
             </div>
         </div>
     `;
-    
-    document.body.appendChild(overlay);
-    
-    // Add close functionality
-    overlay.querySelector('#closeOverlay').onclick = () => {
-        document.body.removeChild(overlay);
-    };
-    
-    // Close on background click
-    overlay.onclick = (e) => {
-        if (e.target === overlay) {
+
+        document.body.appendChild(overlay);
+
+        // Add close functionality
+        overlay.querySelector('#closeOverlay').onclick = () => {
             document.body.removeChild(overlay);
-        }
+        };
+
+        // Close on background click
+        overlay.onclick = (e) => {
+            if (e.target === overlay) {
+                document.body.removeChild(overlay);
+            }
+        };
     };
-};
 
     const handleSaveBusinessCard = async () => {
         if (!card || !card.template) {
             alert("Card data or template is missing.");
             return;
         }
-    
+
         // Show loading indicator
         const loadingDiv = document.createElement('div');
         loadingDiv.innerHTML = `
@@ -259,14 +264,14 @@ const showImageOverlay = (imageData, fileName) => {
             </div>
         `;
         document.body.appendChild(loadingDiv);
-    
+
         try {
             const TemplateComponent = templateMap[card.template];
             if (!TemplateComponent) {
                 alert(`Template "${card.template}" not found.`);
                 return;
             }
-    
+
             // Create container
             const container = document.createElement("div");
             container.style.cssText = `
@@ -279,18 +284,18 @@ const showImageOverlay = (imageData, fileName) => {
                 font-family: Arial, sans-serif;
             `;
             document.body.appendChild(container);
-    
+
             const root = ReactDOM.createRoot(container);
             const LOGICAL_W = 350;
             const LOGICAL_H = 200;
-    
+
             // Render components
             root.render(
                 <React.Fragment>
-                    <div 
-                        id="card-front-capture" 
-                        style={{ 
-                            width: LOGICAL_W, 
+                    <div
+                        id="card-front-capture"
+                        style={{
+                            width: LOGICAL_W,
                             height: LOGICAL_H,
                             background: 'white',
                             marginBottom: '20px'
@@ -298,10 +303,10 @@ const showImageOverlay = (imageData, fileName) => {
                     >
                         <TemplateComponent {...card} side="front" />
                     </div>
-                    <div 
-                        id="card-back-capture" 
-                        style={{ 
-                            width: LOGICAL_W, 
+                    <div
+                        id="card-back-capture"
+                        style={{
+                            width: LOGICAL_W,
                             height: LOGICAL_H,
                             background: 'white'
                         }}
@@ -310,29 +315,29 @@ const showImageOverlay = (imageData, fileName) => {
                     </div>
                 </React.Fragment>
             );
-    
+
             // Wait for rendering - shorter wait time
             await new Promise(resolve => setTimeout(resolve, 500));
-    
+
             const frontEl = container.querySelector('#card-front-capture');
             const backEl = container.querySelector('#card-back-capture');
-    
+
             if (!frontEl || !backEl) {
                 throw new Error("Could not find card elements.");
             }
-    
+
             // Simple capture options
             const captureOptions = {
                 quality: 0.8,
                 pixelRatio: 2,
                 backgroundColor: '#ffffff'
             };
-    
+
             console.log('Capturing images...');
-            
+
             // Capture both sides with error handling
             let frontDataUrl, backDataUrl;
-            
+
             try {
                 [frontDataUrl, backDataUrl] = await Promise.all([
                     toPng(frontEl, captureOptions).catch(err => {
@@ -351,11 +356,11 @@ const showImageOverlay = (imageData, fileName) => {
                 await new Promise(resolve => setTimeout(resolve, 100));
                 backDataUrl = await toPng(backEl, captureOptions);
             }
-    
+
             // Create final image
             const canvas = document.createElement("canvas");
             const ctx = canvas.getContext("2d");
-            
+
             // Load captured images
             const loadImg = (dataUrl) => new Promise((resolve, reject) => {
                 const img = new Image();
@@ -363,38 +368,38 @@ const showImageOverlay = (imageData, fileName) => {
                 img.onerror = () => reject(new Error('Failed to load captured image'));
                 img.src = dataUrl;
             });
-    
+
             const [frontImg, backImg] = await Promise.all([
                 loadImg(frontDataUrl),
                 loadImg(backDataUrl)
             ]);
-    
+
             // Set canvas size
             const GAP = 30;
             canvas.width = Math.max(frontImg.width, backImg.width);
             canvas.height = frontImg.height + backImg.height + GAP;
-    
+
             // Draw white background
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
+
             // Draw both cards
             const frontX = (canvas.width - frontImg.width) / 2;
             const backX = (canvas.width - backImg.width) / 2;
-            
+
             ctx.drawImage(frontImg, frontX, 0);
             ctx.drawImage(backImg, backX, frontImg.height + GAP);
-    
+
             // Create download
             const finalDataUrl = canvas.toDataURL("image/png", 0.9);
-            
+
             // Detect mobile and handle download accordingly
             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
             const fileName = `${card.fullname.replace(/[^a-zA-Z0-9]/g, '_')}_business_card.png`;
-            
+
             if (isMobile) {
                 // Mobile: Try multiple methods in order of preference
-                
+
                 // Method 1: Try direct download first (works on some Android browsers)
                 try {
                     const link = document.createElement("a");
@@ -404,7 +409,7 @@ const showImageOverlay = (imageData, fileName) => {
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
-                    
+
                     // Give user feedback that download started
                     setTimeout(() => {
                         if (confirm('If the download didn\'t start automatically, would you like to view the image in a new tab where you can save it manually?')) {
@@ -432,10 +437,10 @@ const showImageOverlay = (imageData, fileName) => {
                             }
                         }
                     }, 1000);
-                    
+
                 } catch (downloadError) {
                     console.error('Direct download failed:', downloadError);
-                    
+
                     // Method 2: Try window.open
                     const imageWindow = window.open('about:blank', '_blank');
                     if (imageWindow) {
@@ -469,9 +474,9 @@ const showImageOverlay = (imageData, fileName) => {
                 link.click();
                 document.body.removeChild(link);
             }
-    
+
             console.log('Business card created successfully');
-    
+
         } catch (err) {
             console.error('Failed to create business card:', err);
             alert(`Failed to create business card: ${err.message}. Please try again.`);
@@ -487,7 +492,7 @@ const showImageOverlay = (imageData, fileName) => {
             } catch (cleanupError) {
                 console.warn('Cleanup error:', cleanupError);
             }
-            
+
             if (loadingDiv && document.body.contains(loadingDiv)) {
                 document.body.removeChild(loadingDiv);
             }
