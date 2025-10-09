@@ -11,6 +11,8 @@ import Template3 from "../components/templates/Template3";
 import Template4 from "../components/templates/Template4";
 import Template5 from "../components/templates/Template5";
 import Template6 from "../components/templates/Template6";
+import TemplateVmes from "../components/templates/TemplateVmes";
+
 import { getLogoSrc } from "../utils/logoUtils";
 
 const templateMap = {
@@ -20,6 +22,7 @@ const templateMap = {
   template4: Template4,
   template5: Template5,
   template6: Template6,
+  templatevmes: TemplateVmes,
 };
 
 export default function TeamMembersPage() {

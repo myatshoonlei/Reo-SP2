@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import Cropper from "react-easy-crop";
+import getCroppedImg from "../utils/cropImage"; // uses your createImage + toBlob impl
 import PhonePreview from "../components/PhonePreview";
 import UploadTile from "../components/UploadTile";
 import Template1 from "../components/templates/Template1";
@@ -104,6 +106,14 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
   const [templateId, setTemplateId] = useState(1);
   const [primaryColor, setPrimaryColor] = useState("#1F2937");
   const [secondaryColor, setSecondaryColor] = useState("#f5f9ff");
+
+  // cropper modal state
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropMode, setCropMode] = useState(null); // 'profile' | 'logo'
+  const [cropImageSrc, setCropImageSrc] = useState(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
 
   // cleanup
   const prevBlobUrls = useRef([]);
@@ -279,19 +289,41 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
     }
   };
 
-  // file changes
-  const onProfileFileChange = (e) => {
+  // helper: read a File to data URL
+  const fileToDataUrl = (file) =>
+    new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+
+  // when user picks a profile image -> open cropper
+  const onProfileFileChange = async (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    setProfileFile(f);
-    setPreviewUrl(setProfileImageUrl, URL.createObjectURL(f));
+    setCropMode("profile");
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
+    const src = await fileToDataUrl(f);
+    setCropImageSrc(src);
+    setCropperOpen(true);
   };
-  const onLogoFileChange = (e) => {
+
+  // when user picks a logo -> open cropper
+  const onLogoFileChange = async (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    setLogoFile(f);
-    setPreviewUrl(setCompanyLogoUrl, URL.createObjectURL(f));
+    setCropMode("logo");
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
+    const src = await fileToDataUrl(f);
+    setCropImageSrc(src);
+    setCropperOpen(true);
   };
+
 
   if (loading) {
     return (
@@ -332,6 +364,48 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
   const closeModal = () => {
     navigate("/home");
   };
+
+  const onCropComplete = (_area, areaPixels) => {
+  setCroppedAreaPixels(areaPixels);
+};
+
+// turn object URL into a Blob/File so your existing upload flow still works
+const objectUrlToFile = async (objUrl, name = "image.jpg") => {
+  const blob = await fetch(objUrl).then((r) => r.blob());
+  return new File([blob], name, { type: blob.type || "image/jpeg" });
+};
+
+// confirm crop -> set preview + file for the right target
+const handleCropConfirm = async () => {
+  if (!cropImageSrc || !croppedAreaPixels || !cropMode) return;
+
+  // your util returns an *Object URL* built from canvas.toBlob(...)
+  const objUrl = await getCroppedImg(cropImageSrc, croppedAreaPixels);
+
+  if (cropMode === "profile") {
+    // preview on the page
+    setPreviewUrl(setProfileImageUrl, objUrl);
+    // upload-ready file
+    const f = await objectUrlToFile(objUrl, "profile.jpg");
+    setProfileFile(f);
+  } else if (cropMode === "logo") {
+    setPreviewUrl(setCompanyLogoUrl, objUrl);
+    const f = await objectUrlToFile(objUrl, "logo.jpg");
+    setLogoFile(f);
+  }
+
+  // close modal
+  setCropperOpen(false);
+  setCropMode(null);
+  setCropImageSrc(null);
+};
+
+const handleCropCancel = () => {
+  setCropperOpen(false);
+  setCropMode(null);
+  setCropImageSrc(null);
+};
+
 
   return (
     <div className="min-h-screen font-inter bg-gradient-to-b from-[#F3F9FE] to-[#C5DBEC]">
@@ -491,6 +565,30 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
           </div>
         </div>
       </div>
+      {cropperOpen && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-80 flex justify-center items-center">
+          <div className="relative w-[300px] h-[300px] bg-white">
+            <Cropper
+              image={cropImageSrc}
+              crop={crop}
+              zoom={zoom}
+              aspect={1}
+              onCropChange={setCrop}
+              onZoomChange={setZoom}
+              onCropComplete={onCropComplete}
+              // keep it square like CompanyLogoModal (no round avatar shape)
+              // cropShape="rect"  // (optional; rect is default)
+              showGrid={true}     // matches your CompanyLogoModal default grid
+            />
+            <button
+              className="absolute bottom-2 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-blue-500 text-white rounded"
+              onClick={handleCropConfirm}  // same as showCroppedImage()
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

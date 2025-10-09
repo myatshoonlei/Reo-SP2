@@ -1,0 +1,102 @@
+//// ------------------------------------------------------
+//// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+//// ------------------------------------------------------
+
+Table contacts {
+  id Int [pk, increment]
+  user_id Int [not null]
+  saved_card_id Int [not null]
+  created_at DateTime [default: `now()`]
+  personal_cards personal_cards [not null]
+  users users [not null]
+
+  indexes {
+    (user_id, saved_card_id) [unique]
+  }
+}
+
+Table personal_cards {
+  id Int [pk, increment]
+  company_name String
+  job_title String
+  phone_number String
+  company_address String
+  user_id Int
+  logo Bytes
+  primary_color String
+  secondary_color String
+  fullname String
+  email String
+  template_id String
+  component_key String
+  created_at DateTime [default: `now()`]
+  qr String
+  profile_photo Bytes
+  font_family String
+  contacts contacts [not null]
+  template template
+  users users
+}
+
+Table team_cards {
+  teamid Int [increment, unique, not null]
+  userid Int
+  company_name String [not null]
+  logo Bytes
+  primary_color String [default: '']
+  secondary_color String [default: '']
+  id Int [pk, increment]
+  template_id String
+  created_at DateTime [default: `now()`, not null]
+  template template
+  users users
+  team_members team_members [not null]
+}
+
+Table team_members {
+  id Int [pk, increment]
+  team_id Int
+  fullname String
+  job_title String
+  email String
+  phone_number String
+  company_name String
+  qr String
+  company_address String
+  team_cards team_cards
+}
+
+Table template {
+  id String [pk]
+  name String [not null]
+  component_key String [not null]
+  is_active Boolean [default: true]
+  personal_cards personal_cards [not null]
+  team_cards team_cards [not null]
+}
+
+Table users {
+  id Int [pk, increment]
+  fullname String
+  email String [unique]
+  password String
+  picture String
+  isverified Boolean [default: false]
+  contacts contacts [not null]
+  personal_cards personal_cards [not null]
+  team_cards team_cards [not null]
+}
+
+Ref: contacts.saved_card_id > personal_cards.id [delete: Cascade]
+
+Ref: contacts.user_id > users.id [delete: Cascade]
+
+Ref: personal_cards.template_id > template.id [delete: No Action]
+
+Ref: personal_cards.user_id > users.id [delete: No Action]
+
+Ref: team_cards.template_id > template.id [delete: No Action]
+
+Ref: team_cards.userid > users.id [delete: No Action]
+
+Ref: team_members.team_id > team_cards.teamid [delete: Cascade]
