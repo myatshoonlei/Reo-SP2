@@ -140,7 +140,7 @@ export default function Signup() {
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
           <div
-            className="absolute right-3 top-1/2 mt-3 transform -translate-y-1/2 cursor-pointer" // Adjusted positioning slightly
+            className="absolute right-3 top-1/2 mt-3 transform -translate-y-1/2 cursor-pointer text-gray-500" // Adjusted positioning slightly
             onClick={() => setShowPassword(prev => !prev)} 
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}

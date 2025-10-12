@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Mail, Phone, Github, Linkedin } from "lucide-react";
+import { Mail, Phone, Github, Linkedin, Link as LinkIcon } from "lucide-react";
 
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
@@ -58,6 +58,7 @@ export default function EditMyLinks() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [website, setWebsite] = useState("");
+  const [github, setGithub] = useState("");
   const [linkedin, setLinkedin] = useState("");
 
   const [showPhonePreview, setShowPhonePreview] = useState(true);
@@ -108,26 +109,14 @@ export default function EditMyLinks() {
         setLogo(logoB64 ? `data:image/png;base64,${logoB64}` : null);
         setProfilePhoto(photoB64 ? `data:image/jpeg;base64,${photoB64}` : null);
 
-        // Fetch contact-side; fall back to base card values if missing
-        const contactRes = await fetch(`${API_BASE}/api/contacts/${cardId}`, {
-          headers: { Authorization: token },
-        });
-
-        if (contactRes.ok) {
-          const cj = await contactRes.json();
-          const c = cj?.data ?? cj ?? {};
-          setEmail(c.email ?? d.email ?? "");
-          setPhone(c.phone ?? d.phone_number ?? d.phoneNumber ?? "");
-        } else {
-          // no separate contact doc yet — just use base card
-          setEmail(d.email ?? "");
-          setPhone(d.phone_number ?? d.phoneNumber ?? "");
-        }
-
-        // persist id
-        localStorage.setItem("personal_card_id", cardId);
-      } catch (e) {
-        setErr(e.message || "Could not load contact side");
+        // Read contact + links directly from personal card
+        setEmail(d.email ?? "");
+        setPhone(d.phone_number ?? d.phoneNumber ?? "");
+        setWebsite(d.website ?? "");
+        setGithub(d.github ?? "");
+        setLinkedin(d.linkedin ?? "");
+      } catch (error) {
+        setErr("Failed to load card data");
       } finally {
         setLoading(false);
       }
@@ -141,24 +130,27 @@ export default function EditMyLinks() {
       setSaving(true);
       setErr("");
       setOk("");
-
-      // Save ONLY phone + email
-      const payload = { phone, email };
-
-      const res = await fetch(`${API_BASE}/api/contacts/${cardId}`, {
+  
+      // Save to PERSONAL CARD (not /contacts)
+      const payload = {
+        email,
+        phoneNumber: phone,   // backend expects phoneNumber → phone_number
+        website,
+        github,
+        linkedin,
+      };
+  
+      const res = await fetch(`${API_BASE}/api/personal-card/${cardId}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token,
-        },
-        body: JSON.stringify({ phone, email }), // If your backend expects snake_case, use { phone_number: phone, email }
+        headers: { "Content-Type": "application/json", Authorization: token },
+        body: JSON.stringify(payload),
       });
-
+  
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j?.error || j?.message || "Save failed");
       }
-
+  
       setOk("Saved!");
       setTimeout(() => setOk(""), 1200);
     } catch (e) {
@@ -167,9 +159,10 @@ export default function EditMyLinks() {
       setSaving(false);
     }
   };
+  
 
   const closeModal = () => {
-     navigate("/home");
+    navigate("/home");
   };
 
   if (loading) {
@@ -276,6 +269,19 @@ export default function EditMyLinks() {
                   </h3>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Website */}
+                    <div className="col-span-1 sm:col-span-2">
+                      <label className="text-sm text-[#0b2447] flex items-center gap-2 mb-1">
+                        <LinkIcon size={16} /> Website
+                      </label>
+                      <input
+                        className="w-full border rounded-xl px-3 py-2"
+                        value={website}
+                        onChange={(e) => setWebsite(e.target.value)}
+                        placeholder="https://your-site.com"
+                      />
+                    </div>
+
                     {/* GitHub */}
                     <div className="col-span-1 sm:col-span-2">
                       <label className="text-sm text-[#0b2447] flex items-center gap-2 mb-1">
@@ -283,8 +289,8 @@ export default function EditMyLinks() {
                       </label>
                       <input
                         className="w-full border rounded-xl px-3 py-2"
-                        value={website}
-                        onChange={(e) => setWebsite(e.target.value)}
+                        value={github}
+                        onChange={(e) => setGithub(e.target.value)}
                         placeholder="https://github.com/yourname"
                       />
                     </div>
@@ -302,17 +308,6 @@ export default function EditMyLinks() {
                       />
                     </div>
                   </div>
-
-                  {/* (Optional) Add more links button placeholder */}
-                  <div className="mt-3">
-                    <button
-                      type="button"
-                      className="text-sm px-3 py-2 border rounded-lg hover:bg-[#f2f7fd]"
-                      onClick={() => alert("Coming soon")}
-                    >
-                      + Add more links
-                    </button>
-                  </div>
                 </section>
               </div>
             </main>
@@ -327,7 +322,8 @@ export default function EditMyLinks() {
                   Click to switch to {showPhonePreview ? "Card View" : "Phone Preview"}
                 </div>
 
-                  <div
+                {/* flip container */}
+                <div
                   className="relative w-full h-[520px] cursor-pointer transition-transform duration-700 ease-in-out"
                   style={{
                     transformStyle: "preserve-3d",
@@ -335,12 +331,12 @@ export default function EditMyLinks() {
                   }}
                   onClick={() => setShowPhonePreview((prev) => !prev)}
                 >
-                    {/* FRONT: card */}
-                    <div
+                  {/* FRONT: Card view */}
+                  <div
                     className="absolute inset-0"
                     style={{ backfaceVisibility: "hidden", transform: "rotateY(0deg)" }}
                   >
-                      <div className="mx-auto w-[360px] h-[220px] rounded-xl overflow-hidden shadow relative bg-white">
+                    <div className="mx-auto w-[360px] h-[220px] rounded-xl overflow-hidden shadow relative bg-white">
                         <CardComponent
                           {...previewProps}
                           side="front"
@@ -372,6 +368,9 @@ export default function EditMyLinks() {
                           email={email || "email@example.com"}
                           avatar={profilePhoto}
                           logo={logo}
+                          website={website} // ⬅️ add
+                          github={github} // ⬅️ add
+                          linkedin={linkedin}
                         />
                       </div>
                     </div>
