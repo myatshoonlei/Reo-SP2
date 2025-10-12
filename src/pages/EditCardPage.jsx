@@ -258,7 +258,7 @@ export default function EditCardPage({ initialCardId, onClose, onSaved }) {
         bio,
         primaryColor,
         secondaryColor,
-        template_id: templateId,
+        
         font_family: fontFamily, // ✅ add
       };
 
@@ -525,6 +525,7 @@ const handleCropCancel = () => {
                     <div className="mx-auto w-[360px] h-[220px] rounded-xl overflow-hidden shadow relative bg-white">
                         <CardComponent
                           {...p}
+                          logo={p.logoUrl || p.logo}
                           side="front"
                           style={{ width: "100%", height: "100%" }}
                         />
@@ -554,7 +555,7 @@ const handleCropCancel = () => {
                           phone={p.phoneNumber || "Phone"}
                           email={p.email || "email@example.com"}
                           avatar={p.profile_photo}
-                          logo={p.logo}
+                          logo={p.logoUrl || p.logo}
                         />
                       </div>
                     </div>

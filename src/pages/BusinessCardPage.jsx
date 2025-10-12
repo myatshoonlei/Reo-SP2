@@ -251,253 +251,99 @@ END:VCARD`;
     };
 
     const handleSaveBusinessCard = async () => {
-        if (!card || !card.template) {
-            alert("Card data or template is missing.");
-            return;
-        }
+  if (!card || !card.template) {
+    alert("Card data or template is missing.");
+    return;
+  }
 
-        // Show loading indicator
-        const loadingDiv = document.createElement('div');
-        loadingDiv.innerHTML = `
-            <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px;">
-                Creating business card...
-            </div>
-        `;
-        document.body.appendChild(loadingDiv);
+  const TemplateComponent = templateMap[card.template];
+  if (!TemplateComponent) {
+    alert(`Template "${card.template}" not found.`);
+    return;
+  }
 
-        try {
-            const TemplateComponent = templateMap[card.template];
-            if (!TemplateComponent) {
-                alert(`Template "${card.template}" not found.`);
-                return;
-            }
+  // Create hidden container
+  const container = document.createElement("div");
+  container.style.position = "absolute";
+  container.style.top = "-9999px";
+  container.style.left = "-9999px";
+  document.body.appendChild(container);
 
-            // Create container
-            const container = document.createElement("div");
-            container.style.cssText = `
-                position: absolute;
-                top: -5000px;
-                left: -5000px;
-                width: 350px;
-                height: auto;
-                background: white;
-                font-family: Arial, sans-serif;
-            `;
-            document.body.appendChild(container);
+  const root = ReactDOM.createRoot(container);
+  const LOGICAL_W = 350;
+  const LOGICAL_H = 200;
 
-            const root = ReactDOM.createRoot(container);
-            const LOGICAL_W = 350;
-            const LOGICAL_H = 200;
+  root.render(
+    <>
+      <div id="card-front-capture" style={{ width: LOGICAL_W, height: LOGICAL_H, background: "white" }}>
+        <TemplateComponent {...card} side="front" />
+      </div>
+      <div id="card-back-capture" style={{ width: LOGICAL_W, height: LOGICAL_H, background: "white", marginTop: "20px" }}>
+        <TemplateComponent {...card} side="back" />
+      </div>
+    </>
+  );
 
-            // Render components
-            root.render(
-                <React.Fragment>
-                    <div
-                        id="card-front-capture"
-                        style={{
-                            width: LOGICAL_W,
-                            height: LOGICAL_H,
-                            background: 'white',
-                            marginBottom: '20px'
-                        }}
-                    >
-                        <TemplateComponent {...card} side="front" />
-                    </div>
-                    <div
-                        id="card-back-capture"
-                        style={{
-                            width: LOGICAL_W,
-                            height: LOGICAL_H,
-                            background: 'white'
-                        }}
-                    >
-                        <TemplateComponent {...card} side="back" />
-                    </div>
-                </React.Fragment>
-            );
+  await new Promise(resolve => setTimeout(resolve, 500));
 
-            // Wait for rendering - shorter wait time
-            await new Promise(resolve => setTimeout(resolve, 500));
+  const frontEl = container.querySelector("#card-front-capture");
+  const backEl = container.querySelector("#card-back-capture");
 
-            const frontEl = container.querySelector('#card-front-capture');
-            const backEl = container.querySelector('#card-back-capture');
+  const captureOptions = {
+    pixelRatio: 2,
+    backgroundColor: "#ffffff",
+    cacheBust: true,
+  };
 
-            if (!frontEl || !backEl) {
-                throw new Error("Could not find card elements.");
-            }
+  const [frontDataUrl, backDataUrl] = await Promise.all([
+    toPng(frontEl, captureOptions),
+    toPng(backEl, captureOptions),
+  ]);
 
-            // Simple capture options
-            const captureOptions = {
-                quality: 0.8,
-                pixelRatio: 2,
-                backgroundColor: '#ffffff'
-            };
+  const loadImg = (src) =>
+    new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
 
-            console.log('Capturing images...');
+  const [frontImg, backImg] = await Promise.all([
+    loadImg(frontDataUrl),
+    loadImg(backDataUrl),
+  ]);
 
-            // Capture both sides with error handling
-            let frontDataUrl, backDataUrl;
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  const GAP = 30;
 
-            try {
-                [frontDataUrl, backDataUrl] = await Promise.all([
-                    toPng(frontEl, captureOptions).catch(err => {
-                        console.error('Front capture failed:', err);
-                        throw new Error('Failed to capture front of card');
-                    }),
-                    toPng(backEl, captureOptions).catch(err => {
-                        console.error('Back capture failed:', err);
-                        throw new Error('Failed to capture back of card');
-                    })
-                ]);
-            } catch (captureError) {
-                // Fallback: try one at a time
-                console.warn('Parallel capture failed, trying sequential...');
-                frontDataUrl = await toPng(frontEl, captureOptions);
-                await new Promise(resolve => setTimeout(resolve, 100));
-                backDataUrl = await toPng(backEl, captureOptions);
-            }
+  canvas.width = Math.max(frontImg.width, backImg.width);
+  canvas.height = frontImg.height + backImg.height + GAP;
 
-            // Create final image
-            const canvas = document.createElement("canvas");
-            const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Load captured images
-            const loadImg = (dataUrl) => new Promise((resolve, reject) => {
-                const img = new Image();
-                img.onload = () => resolve(img);
-                img.onerror = () => reject(new Error('Failed to load captured image'));
-                img.src = dataUrl;
-            });
+  const frontX = (canvas.width - frontImg.width) / 2;
+  const backX = (canvas.width - backImg.width) / 2;
 
-            const [frontImg, backImg] = await Promise.all([
-                loadImg(frontDataUrl),
-                loadImg(backDataUrl)
-            ]);
+  ctx.drawImage(frontImg, frontX, 0);
+  ctx.drawImage(backImg, backX, frontImg.height + GAP);
 
-            // Set canvas size
-            const GAP = 30;
-            canvas.width = Math.max(frontImg.width, backImg.width);
-            canvas.height = frontImg.height + backImg.height + GAP;
+  const finalDataUrl = canvas.toDataURL("image/png");
+  const fileName = `${(card.fullname || "card").replace(/[^a-zA-Z0-9]/g, "_")}_business_card.png`;
 
-            // Draw white background
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const link = document.createElement("a");
+  link.href = finalDataUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 
-            // Draw both cards
-            const frontX = (canvas.width - frontImg.width) / 2;
-            const backX = (canvas.width - backImg.width) / 2;
+  // Cleanup
+  root.unmount();
+  document.body.removeChild(container);
+};
 
-            ctx.drawImage(frontImg, frontX, 0);
-            ctx.drawImage(backImg, backX, frontImg.height + GAP);
-
-            // Create download
-            const finalDataUrl = canvas.toDataURL("image/png", 0.9);
-
-            // Detect mobile and handle download accordingly
-            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-            const fileName = `${card.fullname.replace(/[^a-zA-Z0-9]/g, '_')}_business_card.png`;
-
-            if (isMobile) {
-                // Mobile: Try multiple methods in order of preference
-
-                // Method 1: Try direct download first (works on some Android browsers)
-                try {
-                    const link = document.createElement("a");
-                    link.href = finalDataUrl;
-                    link.download = fileName;
-                    link.style.display = 'none';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-
-                    // Give user feedback that download started
-                    setTimeout(() => {
-                        if (confirm('If the download didn\'t start automatically, would you like to view the image in a new tab where you can save it manually?')) {
-                            // Method 2: Try window.open with better approach
-                            const imageWindow = window.open('about:blank', '_blank');
-                            if (imageWindow) {
-                                imageWindow.document.write(`
-                                    <!DOCTYPE html>
-                                    <html>
-                                        <head>
-                                            <title>Business Card - ${card.fullname}</title>
-                                            <meta name="viewport" content="width=device-width, initial-scale=1">
-                                        </head>
-                                        <body style="margin:0;padding:20px;text-align:center;background:#f5f5f5;font-family:Arial,sans-serif;">
-                                            <h2>Your Business Card</h2>
-                                            <img src="${finalDataUrl}" style="max-width:100%;height:auto;border:1px solid #ddd;border-radius:8px;background:white;" alt="Business Card">
-                                            <p style="margin-top:20px;color:#666;">Long press the image and select "Save to Photos" or "Download Image"</p>
-                                        </body>
-                                    </html>
-                                `);
-                                imageWindow.document.close();
-                            } else {
-                                // Method 3: Create a temporary overlay in current page
-                                showImageOverlay(finalDataUrl, fileName);
-                            }
-                        }
-                    }, 1000);
-
-                } catch (downloadError) {
-                    console.error('Direct download failed:', downloadError);
-
-                    // Method 2: Try window.open
-                    const imageWindow = window.open('about:blank', '_blank');
-                    if (imageWindow) {
-                        imageWindow.document.write(`
-                            <!DOCTYPE html>
-                            <html>
-                                <head>
-                                    <title>Business Card - ${card.fullname}</title>
-                                    <meta name="viewport" content="width=device-width, initial-scale=1">
-                                </head>
-                                <body style="margin:0;padding:20px;text-align:center;background:#f5f5f5;font-family:Arial,sans-serif;">
-                                    <h2>Your Business Card</h2>
-                                    <img src="${finalDataUrl}" style="max-width:100%;height:auto;border:1px solid #ddd;border-radius:8px;background:white;" alt="Business Card">
-                                    <p style="margin-top:20px;color:#666;">Long press the image and select "Save to Photos" or "Download Image"</p>
-                                </body>
-                            </html>
-                        `);
-                        imageWindow.document.close();
-                    } else {
-                        // Method 3: Fallback to overlay
-                        showImageOverlay(finalDataUrl, fileName);
-                    }
-                }
-            } else {
-                // Desktop: Direct download
-                const link = document.createElement("a");
-                link.download = fileName;
-                link.href = finalDataUrl;
-                link.style.display = 'none';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
-
-            console.log('Business card created successfully');
-
-        } catch (err) {
-            console.error('Failed to create business card:', err);
-            alert(`Failed to create business card: ${err.message}. Please try again.`);
-        } finally {
-            // Clean up
-            try {
-                if (root) {
-                    root.unmount();
-                }
-                if (container && document.body.contains(container)) {
-                    document.body.removeChild(container);
-                }
-            } catch (cleanupError) {
-                console.warn('Cleanup error:', cleanupError);
-            }
-
-            if (loadingDiv && document.body.contains(loadingDiv)) {
-                document.body.removeChild(loadingDiv);
-            }
-        }
-    };
 
     if (!card) {
         return (

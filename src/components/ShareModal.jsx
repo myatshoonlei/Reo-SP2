@@ -1,6 +1,7 @@
 import { X, Share, ImageDown, QrCode } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import ReactDOM from 'react-dom/client';
+import QRCode from 'qrcode';
 
 export default function ShareModal({ card, onClose, cardRef, TemplateComponent, shareUrl }) {
   if (!card) return null;
@@ -9,7 +10,7 @@ export default function ShareModal({ card, onClose, cardRef, TemplateComponent, 
   const buildShareUrl = () => {
     if (shareUrl) return shareUrl;
     if (card.shareUrl) return card.shareUrl;
-    
+
     const BASE = import.meta.env.VITE_PUBLIC_BASE_URL || window.location.origin;
 
     const teamId = card.team_id ?? card.teamid; // support both shapes
@@ -21,7 +22,7 @@ export default function ShareModal({ card, onClose, cardRef, TemplateComponent, 
   const handleShareLink = async () => {
 
 
-   
+
 
     const url = buildShareUrl();
 
@@ -69,7 +70,7 @@ export default function ShareModal({ card, onClose, cardRef, TemplateComponent, 
 
     // unique ids to avoid collisions
     const frontId = `card-front-${card.id || 'x'}`;
-    const backId  = `card-back-${card.id || 'x'}`;
+    const backId = `card-back-${card.id || 'x'}`;
 
     root.render(
       <>
@@ -87,7 +88,7 @@ export default function ShareModal({ card, onClose, cardRef, TemplateComponent, 
 
       // query INSIDE the renderTarget we just created
       const frontEl = renderTarget.querySelector(`#${CSS.escape(frontId)}`);
-      const backEl  = renderTarget.querySelector(`#${CSS.escape(backId)}`);
+      const backEl = renderTarget.querySelector(`#${CSS.escape(backId)}`);
       if (!frontEl || !backEl) throw new Error('Capture elements not found');
 
       const fontUrl = 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700;800&display=swap';
@@ -97,7 +98,7 @@ export default function ShareModal({ card, onClose, cardRef, TemplateComponent, 
 
 
       // Graceful fallback if proxy missing
-      
+
 
       const options = { cacheBust: true, pixelRatio: 2, fontEmbedCSS: fontCss };
 
@@ -136,19 +137,119 @@ export default function ShareModal({ card, onClose, cardRef, TemplateComponent, 
       alert("Sorry, there was an error downloading the card image.");
     } finally {
       // ✅ clean up
-      try { root.unmount(); } catch {}
+      try { root.unmount(); } catch { }
       document.body.removeChild(container);
     }
   };
 
-  const handleDownloadQr = () => {
-    if (!card.qr) return alert("QR code not available for this card.");
-    const link = document.createElement('a');
-    link.href = card.qr;
-    link.download = `${safeFile(card.fullname)}-qrcode.png`;
+
+  function loadImage(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error(`Image failed to load: ${src}`));
+      img.src = src;
+    });
+  }
+
+  
+  const handleDownloadQr = async () => {
+  try {
+    const url = buildShareUrl(); // dynamic link
+    const qrDataUrl = await QRCode.toDataURL(url, { errorCorrectionLevel: 'H' });
+
+    const qrImg = await loadImage(qrDataUrl); // ✅ use generated QR, not card.qr
+
+    // Canvas setup
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const W = 900, H = 1400, PAD = 48, CARD_R = 32;
+    canvas.width = W; canvas.height = H;
+
+    // Rounded-rect helper
+    const roundRect = (x, y, w, h, r) => {
+      const rr = Math.min(r, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + rr, y);
+      ctx.lineTo(x + w - rr, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
+      ctx.lineTo(x + w, y + h - rr);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+      ctx.lineTo(x + rr, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
+      ctx.lineTo(x, y + rr);
+      ctx.quadraticCurveTo(x, y, x + rr, y);
+      ctx.closePath();
+    };
+
+    // Background and card
+    ctx.clearRect(0, 0, W, H);
+    const cardX = PAD, cardY = PAD, cardW = W - PAD * 2, cardH = H - PAD * 2;
+    ctx.fillStyle = "#ffffff";
+    roundRect(cardX, cardY, cardW, cardH, CARD_R);
+    ctx.fill();
+
+    // Header
+    const headerH = 140;
+    ctx.fillStyle = "#cfe0ff";
+    roundRect(cardX, cardY, cardW, headerH + CARD_R, CARD_R);
+    ctx.fill();
+
+    ctx.fillStyle = "#1f2b5a";
+    ctx.font = "bold 48px Poppins, Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Reo", W / 2, cardY + headerH / 2 + 18);
+
+    // ✅ Draw dynamic QR image
+    const qrSize = 560;
+    const qrX = (W - qrSize) / 2;
+    const qrY = cardY + (cardH - qrSize) / 2 - 50;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+
+    // Optional logo overlay
+    const innerLogo = await loadImage("/ReoLogo.png");
+    const innerLogoSize = Math.round(qrSize * 0.16);
+    const cx = W / 2, cy = qrY + qrSize / 2;
+    const box = Math.round(innerLogoSize * 1.25);
+
+    ctx.fillStyle = "#ffffff";
+    const rr = Math.round(box * 0.2);
+    ctx.beginPath();
+    ctx.moveTo(cx - box / 2 + rr, cy - box / 2);
+    ctx.arcTo(cx + box / 2, cy - box / 2, cx + box / 2, cy - box / 2 + rr, rr);
+    ctx.arcTo(cx + box / 2, cy + box / 2, cx + box / 2 - rr, cy + box / 2, rr);
+    ctx.arcTo(cx - box / 2, cy + box / 2, cx - box / 2, cy + box / 2 - rr, rr);
+    ctx.arcTo(cx - box / 2, cy - box / 2, cx - box / 2 + rr, cy - box / 2, rr);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.drawImage(innerLogo, cx - innerLogoSize / 2, cy - innerLogoSize / 2, innerLogoSize, innerLogoSize);
+
+    // Name + company
+    const nameY = qrY + qrSize + 110;
+    ctx.fillStyle = "#000000";
+    ctx.font = "600 44px Poppins, Arial, sans-serif";
+    ctx.fillText(card.fullname, W / 2, nameY);
+
+    const company = card.company_name || card.companyName || "";
+    ctx.fillStyle = "#344054";
+    ctx.font = "500 32px Poppins, Arial, sans-serif";
+    ctx.fillText(company ? `@${company}` : "", W / 2, nameY + 54);
+
+    // Download
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = `${card.fullname}-qrcode.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+  } catch (err) {
+    console.error("handleDownloadQr failed:", err);
+    alert(err.message || "Could not generate the QR image.");
+  }
   };
 
   return (

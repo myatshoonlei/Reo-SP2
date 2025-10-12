@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
+import Cropper from "react-easy-crop"
+import getCroppedImg from "../utils/cropImage"   // <-- same util you already have
+
 import Navbar from "../components/Navbar"
 import Sidebar from "../components/Sidebar"
 import PhonePreview from "../components/PhonePreview"
@@ -14,6 +17,7 @@ import Template5 from "../components/templates/Template5"
 import Template6 from "../components/templates/Template6"
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000"
+
 const CardComponentById = {
   1: Template1,
   2: Template2,
@@ -23,61 +27,17 @@ const CardComponentById = {
   6: Template6,
 }
 
-// simple, no-font-loading stacks (so it works without extra setup)
+
 const FONT_OPTIONS = [
-  // System / neutral UI
-  {
-    label: "System (Inter/Sans)",
-    value: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif`,
-  },
-
-  // Classic corporate clean
-  {
-    label: "Neo Grotesk (Helvetica/Arial)",
-    value: `"Helvetica Neue", Helvetica, Arial, "Noto Sans", sans-serif`,
-  },
-
-  // Softer humanist UI
-  {
-    label: "Humanist (Segoe/Leelawadee)",
-    value: `"Segoe UI", "Leelawadee UI", Tahoma, Arial, sans-serif`,
-  },
-
-  // Friendly rounded
-  {
-    label: "Rounded (Nunito-like)",
-    value: `"Nunito", -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`,
-  },
-
-  // Dense / compact
-  {
-    label: "Compact (Tahoma)",
-    value: `Tahoma, "Segoe UI", Arial, sans-serif`,
-  },
-
-  // International coverage
-  {
-    label: "International (Noto Sans First)",
-    value: `"Noto Sans", "Segoe UI", "Leelawadee UI", Tahoma, Arial, sans-serif`,
-  },
-
-  // Editorial serif (distinct from UI sans)
-  {
-    label: "Old Style Serif (Garamond)",
-    value: `Garamond, "Times New Roman", Times, serif`,
-  },
-
-  // Monospace (codes/IDs)
-  {
-    label: "Mono (SFMono/Consolas)",
-    value: `"SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`,
-  },
-
-  // Display / headline punch
-  {
-    label: "Display (Impact/Haettenschweiler)",
-    value: `Impact, Haettenschweiler, "Arial Narrow Bold", Arial, sans-serif`,
-  },
+  { label: "System (Inter/Sans)", value: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif` },
+  { label: "Neo Grotesk (Helvetica/Arial)", value: `"Helvetica Neue", Helvetica, Arial, "Noto Sans", sans-serif` },
+  { label: "Humanist (Segoe/Leelawadee)", value: `"Segoe UI", "Leelawadee UI", Tahoma, Arial, sans-serif` },
+  { label: "Rounded (Nunito-like)", value: `"Nunito", -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif` },
+  { label: "Compact (Tahoma)", value: `Tahoma, "Segoe UI", Arial, sans-serif` },
+  { label: "International (Noto Sans First)", value: `"Noto Sans", "Segoe UI", "Leelawadee UI", Tahoma, Arial, sans-serif` },
+  { label: "Old Style Serif (Garamond)", value: `Garamond, "Times New Roman", Times, serif` },
+  { label: "Mono (SFMono/Consolas)", value: `"SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace` },
+  { label: "Display (Impact/Haettenschweiler)", value: `Impact, Haettenschweiler, "Arial Narrow Bold", Arial, sans-serif` },
 ]
 
 export default function EditContactSide() {
@@ -109,17 +69,28 @@ export default function EditContactSide() {
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
 
-  // images
+  // images (live preview urls)
   const [profileUrl, setProfileUrl] = useState(null)
   const [logoUrl, setLogoUrl] = useState(null)
+
+  // pending upload files
   const [profileFile, setProfileFile] = useState(null)
   const [logoFile, setLogoFile] = useState(null)
   const [removeProfile, setRemoveProfile] = useState(false)
   const [removeLogo, setRemoveLogo] = useState(false)
 
   const [templateId, setTemplateId] = useState(1)
-  const [showPhonePreview, setShowPhonePreview] = useState(false) // <--- Changed to false
+  const [showPhonePreview, setShowPhonePreview] = useState(false)
 
+  // ------- cropper state -------
+  const [cropperOpen, setCropperOpen] = useState(false)
+  const [cropMode, setCropMode] = useState(null) // 'profile' | 'logo'
+  const [cropImageSrc, setCropImageSrc] = useState(null)
+  const [crop, setCrop] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null)
+
+  // cleanup for blob URLs
   const prevBlobUrls = useRef([])
   const rememberBlob = (url) => url?.startsWith("blob:") && prevBlobUrls.current.push(url)
 
@@ -134,13 +105,14 @@ export default function EditContactSide() {
         setLoading(true)
         setErr("")
 
-        // 1) Fetch the entire card, including Base64 image data
+
         const baseRes = await fetch(`${API_BASE}/api/personal-card/${cardId}`, {
           headers: { Authorization: token },
         })
         if (!baseRes.ok) throw new Error("Failed to load card")
         const base = await baseRes.json()
         const d = base?.data ?? base
+
         setFullName(d.fullname ?? "")
         setJobTitle(d.job_title ?? d.jobTitle ?? "")
         setCompanyName(d.company_name ?? d.companyName ?? "")
@@ -154,26 +126,16 @@ export default function EditContactSide() {
 
         const logoB64 = d.logo || d.logoBase64
         const photoB64 = d.profile_photo || d.profilePhoto
-
-        const logo = logoB64 ? `data:image/png;base64,${logoB64}` : null
-        const photo = photoB64 ? `data:image/jpeg;base64,${photoB64}` : null
-
-        setLogoUrl(logo)
-        setProfileUrl(photo)
+        setLogoUrl(logoB64 ? `data:image/png;base64,${logoB64}` : null)
+        setProfileUrl(photoB64 ? `data:image/jpeg;base64,${photoB64}` : null)
 
         localStorage.setItem("personal_card_id", cardId)
-        // ✅ ADD THIS BLOCK OF CODE HERE
+
+        // also accept legacy component_key
         const tId = Number(d.templateId)
-        const keyToId = {
-          template1: 1,
-          template2: 2,
-          template3: 3,
-          template4: 4,
-          template5: 5,
-          template6: 6,
-        }
+        const keyToId = { template1:1, template2:2, template3:3, template4:4, template5:5, template6:6 }
         const key = (d.component_key ?? d.componentKey ?? "").toString()
-        setTemplateId(Number.isFinite(tId) && [1, 2, 3, 4, 5, 6].includes(tId) ? tId : keyToId[key] || 1)
+        setTemplateId(Number.isFinite(tId) && [1,2,3,4,5,6].includes(tId) ? tId : keyToId[key] || 1)
       } catch (e) {
         setErr(e.message || "Could not load contact side")
       } finally {
@@ -187,32 +149,70 @@ export default function EditContactSide() {
       prevBlobUrls.current = []
     }
   }, [cardId, token])
-  const onProfileChange = (e) => {
+
+  // -------- file helpers --------
+  const fileToDataUrl = (file) =>
+    new Promise((resolve, reject) => {
+      const r = new FileReader()
+      r.onload = () => resolve(r.result)
+      r.onerror = reject
+      r.readAsDataURL(file)
+    })
+
+  const objectUrlToFile = async (objUrl, name = "image.jpg") => {
+    const blob = await fetch(objUrl).then((r) => r.blob())
+    return new File([blob], name, { type: blob.type || "image/jpeg" })
+  }
+
+  // -------- picking images -> open cropper --------
+  const onProfileChange = async (e) => {
     const f = e.target.files?.[0]
     if (!f) return
     setRemoveProfile(false)
-    setProfileFile(f)
-
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      setProfileUrl(event.target.result)
-    }
-    reader.readAsDataURL(f)
+    setCropMode("profile")
+    setCrop({ x: 0, y: 0 }); setZoom(1); setCroppedAreaPixels(null)
+    setCropImageSrc(await fileToDataUrl(f))
+    setCropperOpen(true)
   }
 
-  const onLogoChange = (e) => {
+  const onLogoChange = async (e) => {
     const f = e.target.files?.[0]
     if (!f) return
     setRemoveLogo(false)
-    setLogoFile(f)
-
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      setLogoUrl(event.target.result)
-    }
-    reader.readAsDataURL(f)
+    setCropMode("logo")
+    setCrop({ x: 0, y: 0 }); setZoom(1); setCroppedAreaPixels(null)
+    setCropImageSrc(await fileToDataUrl(f))
+    setCropperOpen(true)
   }
 
+  const onCropComplete = (_area, areaPixels) => setCroppedAreaPixels(areaPixels)
+
+  // confirm crop -> live preview + file for upload
+  const handleCropConfirm = async () => {
+    if (!cropImageSrc || !croppedAreaPixels || !cropMode) return
+    const objUrl = await getCroppedImg(cropImageSrc, croppedAreaPixels) // returns blob: URL
+    rememberBlob(objUrl)
+
+    if (cropMode === "profile") {
+      setProfileUrl(objUrl)
+      setProfileFile(await objectUrlToFile(objUrl, "profile.jpg"))
+    } else if (cropMode === "logo") {
+      setLogoUrl(objUrl)
+      setLogoFile(await objectUrlToFile(objUrl, "logo.jpg"))
+    }
+
+    setCropperOpen(false)
+    setCropMode(null)
+    setCropImageSrc(null)
+  }
+
+  const handleCropCancel = () => {
+    setCropperOpen(false)
+    setCropMode(null)
+    setCropImageSrc(null)
+  }
+
+  // -------- save (uploads first, then fields) --------
   const saveAll = async () => {
     try {
       setSaving(true)
@@ -220,106 +220,73 @@ export default function EditContactSide() {
       setOk("")
 
       let cleanToken = tokenRaw
-      if (cleanToken?.startsWith('"') && cleanToken?.endsWith('"')) {
-        cleanToken = cleanToken.slice(1, -1)
-      }
-      if (cleanToken && !cleanToken.toLowerCase().startsWith("bearer ")) {
-        cleanToken = `Bearer ${cleanToken}`
-      }
-
-      console.log("[v0] Starting save process with cardId:", cardId)
-      console.log("[v0] Token format:", cleanToken ? "Bearer token present" : "No token")
+      if (cleanToken?.startsWith('"') && cleanToken?.endsWith('"')) cleanToken = cleanToken.slice(1, -1)
+      if (cleanToken && !cleanToken.toLowerCase().startsWith("bearer ")) cleanToken = `Bearer ${cleanToken}`
 
       const uploads = []
       if (profileFile) {
-        console.log("[v0] Uploading profile photo")
+
         const fd = new FormData()
         fd.append("profile", profileFile)
         fd.append("cardId", cardId)
-        uploads.push(
-          fetch(`${API_BASE}/api/profile-photo`, {
-            method: "POST",
-            headers: { Authorization: cleanToken },
-            body: fd,
-          }),
-        )
+        uploads.push(fetch(`${API_BASE}/api/profile-photo`, { method: "POST", headers: { Authorization: cleanToken }, body: fd }))
       }
       if (logoFile) {
-        console.log("[v0] Uploading logo")
+
         const fd = new FormData()
         fd.append("logo", logoFile)
         fd.append("cardType", "Myself")
         fd.append("cardId", cardId)
-        uploads.push(
-          fetch(`${API_BASE}/api/upload-logo`, {
-            method: "POST",
-            headers: { Authorization: cleanToken },
-            body: fd,
-          }),
-        )
+        uploads.push(fetch(`${API_BASE}/api/upload-logo`, { method: "POST", headers: { Authorization: cleanToken }, body: fd }))
       }
 
       if (uploads.length) {
-        console.log("[v0] Processing", uploads.length, "file uploads")
+
         const resArr = await Promise.all(uploads)
         const bad = resArr.find((r) => !r.ok)
         if (bad) {
-          console.log("[v0] Upload failed with status:", bad.status)
+
           const j = await bad.json().catch(() => ({}))
           throw new Error(j?.error || j?.message || `Upload failed (${bad.status})`)
         }
-        console.log("[v0] All uploads completed successfully")
+
       }
 
       const basePayload = {
         fullname: fullName,
-        job_title: jobTitle, // Changed from jobTitle to job_title
-        company_name: companyName, // Changed from companyName to company_name
-        company_address: companyAddress, // Changed from companyAddress to company_address
+        job_title: jobTitle,
+        company_name: companyName,
+        company_address: companyAddress,
         phone_number: phone,
         email,
-        primary_color: primaryColor, // Changed from primaryColor to primary_color
-        secondary_color: secondaryColor, // Changed from secondaryColor to secondary_color
+        primary_color: primaryColor,
+        secondary_color: secondaryColor,
         font_family: fontFamily,
         clearLogo: removeLogo,
         clearProfile: removeProfile,
       }
 
-      console.log("[v0] Sending base payload:", basePayload)
+
 
       const baseRes = await fetch(`${API_BASE}/api/personal-card/${cardId}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: cleanToken,
-        },
+        headers: { "Content-Type": "application/json", Authorization: cleanToken },
         body: JSON.stringify(basePayload),
       })
 
-      console.log("[v0] Base update response status:", baseRes.status)
 
+      
       if (!baseRes.ok) {
-        let errorMessage = `Save failed (${baseRes.status})`
-        try {
-          const errorText = await baseRes.text()
-          console.log("[v0] Error response text:", errorText)
-
-          if (errorText) {
-            try {
-              const j = JSON.parse(errorText)
-              errorMessage = j?.error || j?.message || errorMessage
-            } catch {
-              // If not JSON, use the text as error message
-              errorMessage = errorText.length > 100 ? errorMessage : errorText
-            }
-          }
-        } catch (parseError) {
-          console.log("[v0] Could not parse error response:", parseError)
+        const errorText = await baseRes.text().catch(() => "")
+        let message = `Save failed (${baseRes.status})`
+        if (errorText) {
+          try { message = JSON.parse(errorText)?.error || JSON.parse(errorText)?.message || message }
+          catch { if (errorText.length < 120) message = errorText }
         }
-        throw new Error(errorMessage)
+        throw new Error(message)
       }
 
-      console.log("[v0] Save completed successfully")
+
       setOk("Saved!")
       setTimeout(() => setOk(""), 1200)
       setProfileFile(null)
@@ -328,16 +295,14 @@ export default function EditContactSide() {
       setRemoveProfile(false)
       setRemoveLogo(false)
     } catch (e) {
-      console.log("[v0] Save error:", e.message)
+
       setErr(e.message || "Save failed")
     } finally {
       setSaving(false)
     }
   }
 
-  const closeModal = () => {
-    navigate("/home", { state: { updatedCard: true } });
-  }
+  const closeModal = () => navigate("/home", { state: { updatedCard: true } })
 
   if (loading) {
     return (
@@ -349,6 +314,7 @@ export default function EditContactSide() {
   }
 
   const CardComponent = CardComponentById[templateId] || Template1
+  
 
   const cardProps = {
     fullName,
@@ -358,7 +324,7 @@ export default function EditContactSide() {
     phoneNumber: phone,
     email,
     profile_photo: removeProfile ? null : profileUrl,
-    logo: removeLogo ? null : logoUrl,
+    logo: removeLogo ? null : logoUrl,               // live preview (blob) wins
     primary_color: primaryColor,
     secondary_color: secondaryColor,
     font_family: fontFamily,
@@ -371,7 +337,7 @@ export default function EditContactSide() {
     sizeAddress: 12,
   }
 
-  // Props for the PhonePreview component
+
   const phonePreviewProps = {
     name: fullName || "Your Name",
     title: jobTitle || "Job Title",
@@ -379,7 +345,7 @@ export default function EditContactSide() {
     phone: phone || "Phone",
     email: email || "email@example.com",
     avatar: removeProfile ? null : profileUrl,
-    logo: removeLogo ? null : logoUrl,
+    logo: removeLogo ? null : logoUrl,               // live preview too
   }
 
   return (
@@ -398,16 +364,16 @@ export default function EditContactSide() {
           )}
 
           <div className="grid grid-cols-11 gap-4 items-start h-full">
-            {/* LEFT: controls */}
+
             <main className="col-span-11 md:col-span-8 lg:col-span-7 space-y-4">
               <div className="rounded-2xl bg-white shadow-sm border border-[#d6e6fb] overflow-hidden">
-                {/* Header */}
+
                 <div className="p-4 border-b">
                   <h2 className="text-lg font-semibold text-[#0b2447]">Contact Side Appearance</h2>
                   <p className="text-sm text-slate-500">Fonts, colors, and images for your contact side.</p>
                 </div>
 
-                {/* Images */}
+
                 <div className="p-4 border-b grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <UploadTile
@@ -454,120 +420,68 @@ export default function EditContactSide() {
                   </div>
                 </div>
 
-                {/* Colors + Font */}
+
                 <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm text-[#0b2447]">Primary Color</label>
                     <div className="mt-1 flex items-center gap-3">
-                      <input
-                        type="color"
-                        value={primaryColor}
-                        onChange={(e) => setPrimaryColor(e.target.value)}
-                        className="h-10 w-14 p-0 border rounded"
-                      />
-                      <input
-                        type="text"
-                        value={primaryColor}
-                        onChange={(e) => setPrimaryColor(e.target.value)}
-                        className="flex-1 border rounded-lg px-3 py-2"
-                      />
+                      <input type="color" value={primaryColor} onChange={(e)=>setPrimaryColor(e.target.value)} className="h-10 w-14 p-0 border rounded" />
+                      <input type="text" value={primaryColor} onChange={(e)=>setPrimaryColor(e.target.value)} className="flex-1 border rounded-lg px-3 py-2" />
                     </div>
                   </div>
 
                   <div>
                     <label className="text-sm text-[#0b2447]">Background Color</label>
                     <div className="mt-1 flex items-center gap-3">
-                      <input
-                        type="color"
-                        value={secondaryColor}
-                        onChange={(e) => setSecondaryColor(e.target.value)}
-                        className="h-10 w-14 p-0 border rounded"
-                      />
-                      <input
-                        type="text"
-                        value={secondaryColor}
-                        onChange={(e) => setSecondaryColor(e.target.value)}
-                        className="flex-1 border rounded-lg px-3 py-2"
-                      />
+                      <input type="color" value={secondaryColor} onChange={(e)=>setSecondaryColor(e.target.value)} className="h-10 w-14 p-0 border rounded" />
+                      <input type="text" value={secondaryColor} onChange={(e)=>setSecondaryColor(e.target.value)} className="flex-1 border rounded-lg px-3 py-2" />
                     </div>
                   </div>
 
                   <div className="sm:col-span-2">
                     <label className="text-sm text-[#0b2447]">Font Style</label>
-                    <select
-                      className="mt-1 w-full border rounded-xl px-3 py-2"
-                      value={fontFamily}
-                      onChange={(e) => setFontFamily(e.target.value)}
-                    >
-                      {FONT_OPTIONS.map((f) => (
-                        <option key={f.label} value={f.value}>
-                          {f.label}
-                        </option>
+                    <select className="mt-1 w-full border rounded-xl px-3 py-2" value={fontFamily} onChange={(e)=>setFontFamily(e.target.value)}>
+                      {FONT_OPTIONS.map((f)=>(
+                        <option key={f.label} value={f.value}>{f.label}</option>
                       ))}
                     </select>
-                    {/* <p className="text-xs text-slate-500 mt-1">
-                      (No extra downloads — uses safe font stacks. If you want a
-                      specific Google Font, we can add it later.)
-                    </p> */}
+
                   </div>
                 </div>
               </div>
             </main>
 
-            {/* RIGHT: preview */}
+
             <aside className="col-span-11 md:col-span-4 self-center justify-center">
-              {/* keep it visible and start near the top of the page */}
+
               <div className="md:sticky md:top-24 pr-2">
-                {/* perspective on parent */}
+
                 <div className="relative w-full max-w-sm mx-auto" style={{ perspective: "1000px" }}>
                   <div className="text-sm text-center mb-2 text-[#0b2447] opacity-80">
                     Click to switch to {showPhonePreview ? "Card View" : "Phone Preview"}
                   </div>
 
-                  {/* flip container */}
+
                   <div
                     className="relative w-full h-[520px] cursor-pointer transition-transform duration-700 ease-in-out"
-                    style={{
-                      transformStyle: "preserve-3d",
-                      transform: showPhonePreview ? "rotateY(180deg)" : "rotateY(0deg)",
-                    }}
+                    style={{ transformStyle: "preserve-3d", transform: showPhonePreview ? "rotateY(180deg)" : "rotateY(0deg)" }}
                     onClick={() => setShowPhonePreview((prev) => !prev)}
                   >
-                    {/* FRONT: Card view */}
-                    <div
-                      className="absolute inset-0"
-                      style={{ backfaceVisibility: "hidden", transform: "rotateY(0deg)" }}
-                    >
-                      <div
-                        className="mx-auto w-[360px] h-[220px] rounded-xl overflow-hidden shadow relative bg-white"
-                        style={{ fontFamily }}
-                      >
-                        <CardComponent {...cardProps} side="front" style={{ width: "100%", height: "100%" }} />
+                    <div className="absolute inset-0" style={{ backfaceVisibility: "hidden", transform: "rotateY(0deg)" }}>
+                      <div className="mx-auto w-[360px] h-[220px] rounded-xl overflow-hidden shadow relative bg-white" style={{ fontFamily }}>
+                        <CardComponent  {...cardProps} side="front" style={{ width: "100%", height: "100%" }} />
                       </div>
                     </div>
 
-                    {/* BACK: Phone preview */}
-                    <div
-                      className="absolute inset-0"
-                      style={{
-                        backfaceVisibility: "hidden",
-                        transform: "rotateY(180deg)",
-                        transformOrigin: "top center",
-                      }}
-                    >
-                      <div
-                        style={{
-                          transform: "scale(0.95)",
-                          transformOrigin: "top center",
-                        }}
-                      >
-                        <PhonePreview {...phonePreviewProps} />
+                    <div className="absolute inset-0" style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)", transformOrigin: "top center" }}>
+                      <div style={{ transform: "scale(0.95)", transformOrigin: "top center" }}>
+                        <PhonePreview {...phonePreviewProps}  />
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* color chips preview */}
+
                 <div className="mt-3 flex items-center gap-3 justify-center">
                   <span className="inline-flex items-center gap-2 text-xs text-slate-600">
                     <span className="inline-block w-4 h-4 rounded" style={{ background: primaryColor }} />
@@ -583,6 +497,30 @@ export default function EditContactSide() {
           </div>
         </div>
       </div>
+
+      {/* Cropper modal */}
+      {cropperOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex justify-center items-center">
+          <div className="relative w-[320px] h-[360px] bg-white rounded-lg p-3">
+            <div className="relative w-full h-[260px]">
+              <Cropper
+                image={cropImageSrc}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={onCropComplete}
+                showGrid
+              />
+            </div>
+            <div className="mt-3 flex gap-2 justify-end">
+              <button className="px-3 py-1.5 rounded border" onClick={handleCropCancel}>Cancel</button>
+              <button className="px-3 py-1.5 rounded bg-blue-600 text-white" onClick={handleCropConfirm}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

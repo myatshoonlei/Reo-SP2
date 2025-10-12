@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import googleIcon from "../assets/googleIcon.png";
 import { GoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
     try {
@@ -66,20 +68,28 @@ export default function Login() {
         </div>
 
         {/* Password */}
-        <div className="text-left mb-6">
+        <div className="relative text-left mb-6">
           <label className="block text-sm font-semibold text-black mb-1">Password</label>
           <input
-            type="password"
+            // 2. Changed type based on `showPassword` state
+            type={showPassword ? "text" : "password"}
             placeholder="Enter your password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
-          <div className="text-right mt-1">
+          <div
+            className="absolute right-3 top-[70%] -translate-y-1/2 cursor-pointer text-gray-500"
+            onClick={() => setShowPassword((prev) => !prev)}
+          >
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          </div>
+
+          {/* <div className="text-right mt-1">
             <Link to="#" className="text-sm text-blue-600 hover:underline">
               Forgot password?
             </Link>
-          </div>
+          </div> */}
         </div>
 
         <div className="text-sm text-gray-500 mb-4">Or</div>
@@ -87,51 +97,51 @@ export default function Login() {
         <div className="flex justify-center mb-4">
           <GoogleLogin
             onSuccess={async (credentialResponse) => {
-            const cred = credentialResponse?.credential || "";
-            const decoded = cred ? jwtDecode(cred) : null;
-            if (!decoded) {
-              alert("Google Sign-In failed. Try again.");
-              return;
-            }
-            console.log("Google User:", decoded);
-
-            const { name: fullName, email: userEmail, picture } = decoded;
-            if (!userEmail) {
-              alert("Google did not return an email for this account.");
-              return;
-            }
-
-
-
-            try {
-              const res = await fetch(`${API_URL}/api/google-auth`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ name: fullName, email: userEmail, picture }),
-
-              });
-
-              const data = await res.json();
-
-              if (res.ok) {
-                localStorage.setItem("token", data.token);
-                localStorage.setItem(
-                  "displayName",
-                  data.name || fullName || userEmail?.split("@")[0]
-                );
-
-                alert(`Welcome ${data.name || fullName}!`);
-                navigate("/home", { replace: true }); // or /dashboard
-              } else {
-                alert(data.error || "Something went wrong.");
+              const cred = credentialResponse?.credential || "";
+              const decoded = cred ? jwtDecode(cred) : null;
+              if (!decoded) {
+                alert("Google Sign-In failed. Try again.");
+                return;
               }
-            } catch (err) {
-              alert("Server error while saving Google user.");
-            }
-          }}
-          onError={() => {
+              console.log("Google User:", decoded);
+
+              const { name: fullName, email: userEmail, picture } = decoded;
+              if (!userEmail) {
+                alert("Google did not return an email for this account.");
+                return;
+              }
+
+
+
+              try {
+                const res = await fetch(`${API_URL}/api/google-auth`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({ name: fullName, email: userEmail, picture }),
+
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                  localStorage.setItem("token", data.token);
+                  localStorage.setItem(
+                    "displayName",
+                    data.name || fullName || userEmail?.split("@")[0]
+                  );
+
+                  alert(`Welcome ${data.name || fullName}!`);
+                  navigate("/home", { replace: true }); // or /dashboard
+                } else {
+                  alert(data.error || "Something went wrong.");
+                }
+              } catch (err) {
+                alert("Server error while saving Google user.");
+              }
+            }}
+            onError={() => {
               alert("Google Sign-In failed");
             }}
           />

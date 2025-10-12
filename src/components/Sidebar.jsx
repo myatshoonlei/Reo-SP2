@@ -82,12 +82,7 @@ export default function Sidebar() {
           {item.label}
         </button>
       ))}
-      <button
-        disabled
-        className="w-full text-left px-4 py-2 text-[#0b2447]/60 cursor-not-allowed"
-      >
-        QR Scan Background (soon)
-      </button>
+      
     </div>
   );
 
