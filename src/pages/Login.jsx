@@ -15,6 +15,9 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [welcomeName, setWelcomeName] = useState("");
+
   const handleLogin = async () => {
     try {
       const res = await fetch(`${API_URL}/api/login`, {
@@ -97,30 +100,14 @@ export default function Login() {
         <div className="flex justify-center mb-4">
           <GoogleLogin
             onSuccess={async (credentialResponse) => {
-              const cred = credentialResponse?.credential || "";
-              const decoded = cred ? jwtDecode(cred) : null;
-              if (!decoded) {
-                alert("Google Sign-In failed. Try again.");
-                return;
-              }
-              console.log("Google User:", decoded);
-
-              const { name: fullName, email: userEmail, picture } = decoded;
-              if (!userEmail) {
-                alert("Google did not return an email for this account.");
-                return;
-              }
-
-
+              const decoded = jwtDecode(credentialResponse.credential);
+              const { name, email, picture } = decoded;
 
               try {
                 const res = await fetch(`${API_URL}/api/google-auth`, {
                   method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({ name: fullName, email: userEmail, picture }),
-
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ name, email, picture }),
                 });
 
                 const data = await res.json();
@@ -129,11 +116,17 @@ export default function Login() {
                   localStorage.setItem("token", data.token);
                   localStorage.setItem(
                     "displayName",
-                    data.name || fullName || userEmail?.split("@")[0]
+                    data.name || fullName || email?.split("@")[0]
                   );
 
-                  alert(`Welcome ${data.name || fullName}!`);
-                  navigate("/home", { replace: true }); // or /dashboard
+                  if (data.isNewUser) {
+                    // ✅ show welcome modal only once (new users)
+                    setWelcomeName(data.name || name);
+                    setWelcomeOpen(true);
+                  } else {
+                    // returning user → go directly
+                    navigate("/home", { replace: true });
+                  }
                 } else {
                   alert(data.error || "Something went wrong.");
                 }
@@ -169,6 +162,40 @@ export default function Login() {
           </button>
         </div>
       </div>
+      {welcomeOpen && (
+        <div className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 text-center relative">
+            <button
+              onClick={() => {
+                setWelcomeOpen(false);
+                navigate("/home", { replace: true });
+              }}
+              className="absolute right-3 top-3 text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </button>
+
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Welcome, {welcomeName}
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Your account has been created successfully.
+            </p>
+
+            <button
+              onClick={() => {
+                setWelcomeOpen(false);
+                navigate("/home", { replace: true });
+              }}
+              className="w-full bg-black text-white py-2 rounded-lg font-small hover:bg-gray-800 transition"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      )}
+
+
     </div>
   );
 }

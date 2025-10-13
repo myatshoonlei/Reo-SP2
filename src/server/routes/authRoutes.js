@@ -11,7 +11,7 @@ import { verifyEmail } from '../../utils/verifyEmail.js';
 const app = express();
 
 app.use(cors({
-  origin: ['http://localhost:5173', "https://handheld-bios-gen-walt.trycloudflare.com"],
+  origin: ['http://localhost:5173', "https://longitude-reconstruction-sticky-priced.trycloudflare.com"],
   credentials: true
 }));
 app.use(express.json());
@@ -112,6 +112,7 @@ router.post('/google-auth', async (req, res) => {
     const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
 
     let user;
+    let isNewUser = false; // 👈 add this
 
     if (userResult.rows.length === 0) {
       // Insert new Google user (no password required)
@@ -120,9 +121,11 @@ router.post('/google-auth', async (req, res) => {
         [name, email, picture]
       );
       user = insertResult.rows[0];
+      isNewUser = true; // 👈 mark new user
     } else {
       user = userResult.rows[0];
     }
+
 
     // Generate token for the user
     const token = jwt.sign(
@@ -131,7 +134,7 @@ router.post('/google-auth', async (req, res) => {
       { expiresIn: '1h' }
     );
 
-    res.json({ message: 'Google login successful', token, name: user.fullname });
+    res.json({ message: 'Google login successful', token, name: user.fullname, isNewUser, });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Something went wrong with Google auth' });
