@@ -1,4 +1,3 @@
-// Template6.jsx (Revised)
 import { getLogoSrc } from "../../utils/logoUtils";
 
 const Template6 = (rawProps) => {
@@ -93,14 +92,12 @@ const Template6 = (rawProps) => {
       <div className="relative z-10 flex h-full p-4">
         {/* Left Section: Logo & Company Name */}
         <div className="w-2/5 flex flex-col justify-center items-start pr-4">
-        {logo && (
           <img
             src={logo || "/placeholder.svg"}
             alt="Logo"
             className="w-14 h-14 rounded-full object-cover p-1 mb-2"
             style={{ border: `2px solid ${accentColor}` }}
           />
-        )}
           <span className="font-bold text-lg leading-tight" style={{ color: accentColor }}>
             {company_name || "Tech Solutions"}
           </span>

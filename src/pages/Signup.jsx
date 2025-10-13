@@ -17,6 +17,10 @@ export default function Signup() {
   const [emailError, setEmailError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [welcomeName, setWelcomeName] = useState("");
+
+
 
   const validateEmail = (input) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -133,7 +137,7 @@ export default function Signup() {
           <label className="block text-sm font-semibold text-black mb-1">Password</label>
           <input
             // 2. Changed type based on `showPassword` state
-            type={showPassword ? "text" : "password"} 
+            type={showPassword ? "text" : "password"}
             placeholder="Enter your password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -141,7 +145,7 @@ export default function Signup() {
           />
           <div
             className="absolute right-3 top-1/2 mt-3 transform -translate-y-1/2 cursor-pointer text-gray-500" // Adjusted positioning slightly
-            onClick={() => setShowPassword(prev => !prev)} 
+            onClick={() => setShowPassword(prev => !prev)}
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </div>
@@ -154,39 +158,41 @@ export default function Signup() {
         <div className="flex justify-center mb-4">
           <GoogleLogin
             onSuccess={async (credentialResponse) => {
-            const decoded = jwtDecode(credentialResponse.credential);
-            console.log("Google User:", decoded); // check what's inside
+              const decoded = jwtDecode(credentialResponse.credential);
+              const { name, email, picture } = decoded;
 
-            const { name, email, picture } = decoded;
+              try {
+                const res = await fetch(`${API_URL}/api/google-auth`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ name, email, picture }),
+                });
 
-            try {
-              const res = await fetch(`${API_URL}/api/google-auth`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ name, email, picture }),
-              });
+                const data = await res.json();
 
-              const data = await res.json();
+                if (res.ok) {
+                  localStorage.setItem("token", data.token);
+                  localStorage.setItem(
+                    "displayName",
+                    data.name || fullName || email?.split("@")[0]
+                  );
 
-              if (res.ok) {
-                localStorage.setItem("token", data.token);
-                localStorage.setItem(
-                  "displayName",
-                  data.name || fullName || email?.split("@")[0]
-                );
-
-                alert(`Welcome ${data.name || name}!`);
-                navigate("/home", { replace: true }); // or /dashboard
-              } else {
-                alert(data.error || "Something went wrong.");
+                  if (data.isNewUser) {
+                    // ✅ show welcome modal only once (new users)
+                    setWelcomeName(data.name || name);
+                    setWelcomeOpen(true);
+                  } else {
+                    // returning user → go directly
+                    navigate("/home", { replace: true });
+                  }
+                } else {
+                  alert(data.error || "Something went wrong.");
+                }
+              } catch (err) {
+                alert("Server error while saving Google user.");
               }
-            } catch (err) {
-              alert("Server error while saving Google user.");
-            }
-          }}
-          onError={() => {
+            }}
+            onError={() => {
               alert("Google Sign-In failed");
             }}
           />
@@ -216,6 +222,41 @@ export default function Signup() {
           </button>
         </div>
       </div>
+      {welcomeOpen && (
+        <div className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 text-center relative">
+            <button
+              onClick={() => {
+                setWelcomeOpen(false);
+                navigate("/home", { replace: true });
+              }}
+              className="absolute right-3 top-3 text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </button>
+
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Welcome, {welcomeName}! 🎉
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Your account has been created successfully.
+            </p>
+
+            <button
+              onClick={() => {
+                setWelcomeOpen(false);
+                navigate("/home", { replace: true });
+              }}
+              className="w-full bg-black text-white py-2 rounded-lg font-small hover:bg-gray-800 transition"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      )}
+
+
+
     </div>
   );
 }

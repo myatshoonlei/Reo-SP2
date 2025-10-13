@@ -1,4 +1,3 @@
-// src/components/templates/Template2.jsx
 import { Phone, Mail, MapPin } from "lucide-react";
 import { getLogoSrc } from "../../utils/logoUtils";
 

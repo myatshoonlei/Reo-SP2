@@ -117,6 +117,7 @@ const BusinessCardPage = () => {
                 fullname: data.fullname,
                 email: data.email,
                 company_name: data.company_name,
+                company_address: data.company_address,
                 job_title: data.job_title,
                 phone_number: data.phone_number,
                 qr: data.qr || null,
@@ -251,98 +252,111 @@ END:VCARD`;
     };
 
     const handleSaveBusinessCard = async () => {
-  if (!card || !card.template) {
-    alert("Card data or template is missing.");
-    return;
-  }
+        if (!card || !card.template) {
+            alert("Card data or template is missing.");
+            return;
+        }
 
-  const TemplateComponent = templateMap[card.template];
-  if (!TemplateComponent) {
-    alert(`Template "${card.template}" not found.`);
-    return;
-  }
+        const TemplateComponent = templateMap[card.template];
+        if (!TemplateComponent) {
+            alert(`Template "${card.template}" not found.`);
+            return;
+        }
 
-  // Create hidden container
-  const container = document.createElement("div");
-  container.style.position = "absolute";
-  container.style.top = "-9999px";
-  container.style.left = "-9999px";
-  document.body.appendChild(container);
+        const SAFE_STACK =
+            '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif';
+        const cardForRender = {
+            ...card,
+            font: (card.font ?? card.font_family ?? card.fontFamily ?? SAFE_STACK) + '',
+            font_family: card.font_family ?? card.font ?? card.fontFamily ?? SAFE_STACK,
+            fontFamily: card.fontFamily ?? card.font ?? card.font_family ?? SAFE_STACK,
+        };
 
-  const root = ReactDOM.createRoot(container);
-  const LOGICAL_W = 350;
-  const LOGICAL_H = 200;
 
-  root.render(
-    <>
-      <div id="card-front-capture" style={{ width: LOGICAL_W, height: LOGICAL_H, background: "white" }}>
-        <TemplateComponent {...card} side="front" />
-      </div>
-      <div id="card-back-capture" style={{ width: LOGICAL_W, height: LOGICAL_H, background: "white", marginTop: "20px" }}>
-        <TemplateComponent {...card} side="back" />
-      </div>
-    </>
-  );
+        // Create hidden container
+        const container = document.createElement("div");
+        container.style.position = "absolute";
+        container.style.top = "-9999px";
+        container.style.left = "-9999px";
+        container.style.fontFamily = SAFE_STACK;
+        document.body.appendChild(container);
 
-  await new Promise(resolve => setTimeout(resolve, 500));
+        const root = ReactDOM.createRoot(container);
+        const LOGICAL_W = 350;
+        const LOGICAL_H = 200;
 
-  const frontEl = container.querySelector("#card-front-capture");
-  const backEl = container.querySelector("#card-back-capture");
+        root.render(
+            <>
+                <div id="card-front-capture" style={{ width: LOGICAL_W, height: LOGICAL_H, background: "white" }}>
+                    <TemplateComponent {...cardForRender} side="front" />
+                </div>
+                <div id="card-back-capture" style={{ width: LOGICAL_W, height: LOGICAL_H, background: "white", marginTop: "20px" }}>
+                    <TemplateComponent {...cardForRender} side="back" />
+                </div>
+            </>
+        );
 
-  const captureOptions = {
-    pixelRatio: 2,
-    backgroundColor: "#ffffff",
-    cacheBust: true,
-  };
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-  const [frontDataUrl, backDataUrl] = await Promise.all([
-    toPng(frontEl, captureOptions),
-    toPng(backEl, captureOptions),
-  ]);
+        const frontEl = container.querySelector("#card-front-capture");
+        const backEl = container.querySelector("#card-back-capture");
 
-  const loadImg = (src) =>
-    new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = reject;
-      img.src = src;
-    });
+        const captureOptions = {
+            pixelRatio: 2,
+            backgroundColor: "#ffffff",
+            cacheBust: true,
+            // ⬇️ This is the key line that avoids reading cross-origin stylesheets
+            skipFonts: true,
+        };
 
-  const [frontImg, backImg] = await Promise.all([
-    loadImg(frontDataUrl),
-    loadImg(backDataUrl),
-  ]);
+        const [frontDataUrl, backDataUrl] = await Promise.all([
+            toPng(frontEl, captureOptions),
+            toPng(backEl, captureOptions),
+        ]);
 
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-  const GAP = 30;
+        const loadImg = (src) =>
+            new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = src;
+            });
 
-  canvas.width = Math.max(frontImg.width, backImg.width);
-  canvas.height = frontImg.height + backImg.height + GAP;
+        const [frontImg, backImg] = await Promise.all([
+            loadImg(frontDataUrl),
+            loadImg(backDataUrl),
+        ]);
 
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const GAP = 15;
 
-  const frontX = (canvas.width - frontImg.width) / 2;
-  const backX = (canvas.width - backImg.width) / 2;
+        canvas.width = Math.max(frontImg.width, backImg.width);
+        canvas.height = frontImg.height + backImg.height + GAP;
 
-  ctx.drawImage(frontImg, frontX, 0);
-  ctx.drawImage(backImg, backX, frontImg.height + GAP);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const finalDataUrl = canvas.toDataURL("image/png");
-  const fileName = `${(card.fullname || "card").replace(/[^a-zA-Z0-9]/g, "_")}_business_card.png`;
+        const frontX = (canvas.width - frontImg.width) / 2;
+        const backX = (canvas.width - backImg.width) / 2;
 
-  const link = document.createElement("a");
-  link.href = finalDataUrl;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+        ctx.drawImage(frontImg, frontX, 0);
+        ctx.drawImage(backImg, backX, frontImg.height + GAP);
 
-  // Cleanup
-  root.unmount();
-  document.body.removeChild(container);
-};
+        const finalDataUrl = canvas.toDataURL("image/png");
+        const fileName = `${(card.fullname || "card").replace(/[^a-zA-Z0-9]/g, "_")}_business_card.png`;
+
+        const link = document.createElement("a");
+        link.href = finalDataUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Cleanup
+        root.unmount();
+        document.body.removeChild(container);
+    };
 
 
     if (!card) {

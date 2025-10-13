@@ -1,8 +1,13 @@
-// src/components/templates/Template3.jsx
 import { getLogoSrc } from "../../utils/logoUtils";
 
+// Function to clean up color strings
+function cleanupColor(color) {
+  if (!color) return "#000000";
+  return String(color).replace(/^['"]+|['"]+$/g, "");
+}
+
 const Template3 = (rawProps) => {
-  // normalize props
+  // Normalize props from rawProps, preferring snake_case and falling back to camelCase
   const fullname        = rawProps.fullname ?? rawProps.fullName ?? "Name";
   const email           = rawProps.email ?? "email@example.com";
   const phone_number    = rawProps.phone_number ?? rawProps.phoneNumber ?? "123-456-7890";
@@ -13,11 +18,13 @@ const Template3 = (rawProps) => {
   const primary_color   = cleanupColor(rawProps.primary_color ?? rawProps.primaryColor ?? "#0B2447");
   const secondary_color = cleanupColor(rawProps.secondary_color ?? rawProps.secondaryColor ?? "#19A7CE");
 
-  const logo         = getLogoSrc(rawProps.logo ?? rawProps.logoUrl) || "/placeholder.svg";
+  const logo            = getLogoSrc(rawProps.logo ?? rawProps.logoUrl) || "/placeholder.svg";
 
   const side            = rawProps.side ?? "front";
   const qr              = rawProps.qr ?? null;
   const backShow        = rawProps.backShow ?? {};
+
+  const font_family     = rawProps.font_family ?? rawProps.fontFamily ?? `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`;
 
   const show = {
     logo: backShow?.logo ?? true,
@@ -30,7 +37,7 @@ const Template3 = (rawProps) => {
     return (
       <div
         className="w-full h-[200px] rounded-xl border shadow-md p-4 font-inter flex items-center justify-center"
-        style={{ backgroundColor: secondary_color, color: primary_color }}
+        style={{ backgroundColor: secondary_color, color: primary_color, fontFamily: font_family }}
       >
         <div className="w-full h-full flex flex-col items-center justify-center">
           {show.qr &&
@@ -50,7 +57,7 @@ const Template3 = (rawProps) => {
               </div>
             ))}
           {show.companyName && (
-            <span className="mt-2 font-semibold text-center">
+            <span className="mt-2 font-semibold text-center" style={{ fontFamily: font_family }}>
               {company_name}
             </span>
           )}
@@ -63,6 +70,7 @@ const Template3 = (rawProps) => {
   return (
     <div
       className="relative w-full h-[200px] rounded-xl shadow-lg font-sans overflow-hidden hover:shadow-xl transition-all duration-300 text-white"
+      style={{ backgroundColor: secondary_color, color: primary_color, fontFamily: font_family }}
     >
       {/* Gradient Background */}
       <div
@@ -77,32 +85,30 @@ const Template3 = (rawProps) => {
 
         {/* Top Section: Logo, Company, Title */}
         <div className="flex items-center space-x-3">
-          {logo && (
-            <img
-              src={logo || "/placeholder.svg"}
-              alt="Logo"
-              className="w-12 h-12 rounded-full object-cover border-2 border-white/50"
-            />
-          )}
+          <img
+            src={logo || "/placeholder.svg"}
+            alt="Logo"
+            className="w-12 h-12 rounded-full object-cover border-2 border-white/50"
+          />
           <div>
-            <p className=" text-xl font-bold">{fullname || "Ben10"}</p>
-            <p className="text-sm opacity-70">{job_title || "Job Title"}</p>
+            <p className="text-xl font-bold" style={{ fontFamily: font_family }}>{fullname || "Ben10"}</p>
+            <p className="text-sm opacity-70" style={{ fontFamily: font_family }}>{job_title || "Job Title"}</p>
           </div>
         </div>
 
-        {/* Bottom Section: Name & Contact */}
+        {/* Bottom Section: Name, Company Name & Contact */}
         <div>
-          
           <div className="border-t border-white/20 my-2"></div>
 
           <div className="flex justify-between text-xs opacity-80">
-            {/* Left side (Email) */}
-            <span>{company_address || "123 Main Street, Anytown"}</span>
+            {/* Left side (Company Name & Email) */}
+            <div className="flex flex-col">
+              <span className="font-semibold" style={{ fontFamily: font_family }}>{company_name || "Company"}</span>
+              <span>{company_address || "123 Main Street, Anytown"}</span>
+            </div>
             
-
-            {/* Right side (Phone + Address stacked) */}
+            {/* Right side (Phone + Email) */}
             <div className="flex flex-col items-end">
-              
               <span>{phone_number || "+1 (555) 123-4567"}</span>
               <span>{email || "email@example.com"}</span>
             </div>
@@ -116,8 +122,3 @@ const Template3 = (rawProps) => {
 
 export default Template3;
 
-/* ---------- helpers ---------- */
-function cleanupColor(color) {
-  if (!color) return "#000000";
-  return String(color).replace(/^['"]+|['"]+$/g, "");
-}

@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Cropper from "react-easy-crop";
 import getCroppedImg from "../utils/cropImage";
-import ReactSelect from "react-select";
+import CreatableSelect from "react-select/creatable";
 import '../index.css';
 
 const PersonalInfoModal = () => {
@@ -197,7 +197,7 @@ const PersonalInfoModal = () => {
     }
   };
 
-  const jobTitles = [
+  const initialJobTitles = [
     "Software Engineer", "Product Manager", "Designer", "Data Scientist",
     "Marketing Specialist", "Product Designer", "Web Developer", "Full Stack Developer",
     "Backend Developer", "Frontend Developer", "Machine Learning Engineer", "DevOps Engineer",
@@ -225,6 +225,10 @@ const PersonalInfoModal = () => {
     "Chief Strategy Officer"
   ];
 
+  const [jobOptions, setJobOptions] = useState(
+    initialJobTitles.map((t) => ({ value: t, label: t }))
+  );
+
   const handleJobTitleChange = (selectedOption) => {
     setJobTitle(selectedOption ? selectedOption.value : "");
   };
@@ -240,119 +244,119 @@ const PersonalInfoModal = () => {
   };
 
   const handleSubmitStep1 = async () => {
-  // Require all fields
-  if (
-    !fullname.trim() ||
-    !email.trim() ||
-    !companyName.trim() ||
-    !jobTitle.trim() ||
-    !phoneNumber.trim() ||
-    !companyAddress.trim()
-  ) {
-    alert("Please fill in all fields.");
-    return;
-  }
-
-  // Block on regex/format error
-  if (emailError) return;
-  if (submitting) return;
-
-  setSubmitting(true);
-
-  // Kickbox-style email verification
-  try {
-    const res = await fetch(`${API_BASE}/api/verify-email-check`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      setEmailError(data.error || "Invalid email.");
-      setSubmitting(false);
+    // Require all fields
+    if (
+      !fullname.trim() ||
+      !email.trim() ||
+      !companyName.trim() ||
+      !jobTitle.trim() ||
+      !phoneNumber.trim() ||
+      !companyAddress.trim()
+    ) {
+      alert("Please fill in all fields.");
       return;
     }
-  } catch (err) {
-    console.error("Kickbox check failed:", err);
-    alert("Server error during email verification.");
-    setSubmitting(false);
-    return;
-  }
 
-  // Auth check
-  if (!token) {
-    alert("User not logged in.");
-    setSubmitting(false);
-    return;
-  }
+    // Block on regex/format error
+    if (emailError) return;
+    if (submitting) return;
 
-  // Save card
-  try {
-    const storedId = localStorage.getItem("personal_card_id");
-    const existingId = cardId ?? (storedId ? Number(storedId) : null);
-    const isUpdate = cardId !== null;
-    const method = isUpdate ? "PUT" : "POST";
-    const url = isUpdate
-      ? `${API_BASE}/api/personal-card/${existingId}`
-      : `${API_BASE}/api/personal-card`;
+    setSubmitting(true);
 
-    const res = await fetch(url, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        fullname,
-        email,
-        companyName,
-        jobTitle,
-        phoneNumber,
-        companyAddress,
-      }),
-    });
-
-    const text = await res.text();
-    let data;
+    // Kickbox-style email verification
     try {
-      data = JSON.parse(text);
-    } catch {
-      alert("Server error: Invalid response");
+      const res = await fetch(`${API_BASE}/api/verify-email-check`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setEmailError(data.error || "Invalid email.");
+        setSubmitting(false);
+        return;
+      }
+    } catch (err) {
+      console.error("Kickbox check failed:", err);
+      alert("Server error during email verification.");
       setSubmitting(false);
       return;
     }
 
-    if (!res.ok) {
-      alert(data.error || "Something went wrong.");
+    // Auth check
+    if (!token) {
+      alert("User not logged in.");
       setSubmitting(false);
       return;
     }
 
-    const resultCardId = method === "POST" ? data?.data?.id : cardId;
-    if (resultCardId == null) {
-      alert("Could not get card ID from server.");
+    // Save card
+    try {
+      const storedId = localStorage.getItem("personal_card_id");
+      const existingId = cardId ?? (storedId ? Number(storedId) : null);
+      const isUpdate = cardId !== null;
+      const method = isUpdate ? "PUT" : "POST";
+      const url = isUpdate
+        ? `${API_BASE}/api/personal-card/${existingId}`
+        : `${API_BASE}/api/personal-card`;
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          fullname,
+          email,
+          companyName,
+          jobTitle,
+          phoneNumber,
+          companyAddress,
+        }),
+      });
+
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        alert("Server error: Invalid response");
+        setSubmitting(false);
+        return;
+      }
+
+      if (!res.ok) {
+        alert(data.error || "Something went wrong.");
+        setSubmitting(false);
+        return;
+      }
+
+      const resultCardId = method === "POST" ? data?.data?.id : cardId;
+      if (resultCardId == null) {
+        alert("Could not get card ID from server.");
+        setSubmitting(false);
+        return;
+      }
+
+      setCardId(resultCardId);
+      localStorage.setItem("personal_card_id", resultCardId.toString());
+
+      // ✅ All good — now navigate
+      navigate("/create/company-logo", {
+        state: { cardType: "Myself", cardId: resultCardId },
+      });
+    } catch (err) {
+      alert(`Server error: ${err.message}`);
+      console.error("Submit error:", err);
+    } finally {
       setSubmitting(false);
-      return;
     }
-
-    setCardId(resultCardId);
-    localStorage.setItem("personal_card_id", resultCardId.toString());
-
-    // ✅ All good — now navigate
-    navigate("/create/company-logo", {
-      state: { cardType: "Myself", cardId: resultCardId },
-    });
-  } catch (err) {
-    alert(`Server error: ${err.message}`);
-    console.error("Submit error:", err);
-  } finally {
-    setSubmitting(false);
-  }
-};
+  };
 
   return (
     <div className="fixed inset-0 bg-blue bg-opacity-60 flex justify-center items-center z-50">
@@ -389,11 +393,19 @@ const PersonalInfoModal = () => {
 
               <div>
                 <label className="text-sm font-semibold text-gray-700 block mb-1">Job Title</label>
-                <ReactSelect
-                  options={jobTitles.map((t) => ({ value: t, label: t }))}
-                  onChange={handleJobTitleChange}
+                <CreatableSelect
+                  options={jobOptions}
                   value={jobTitle ? { value: jobTitle, label: jobTitle } : null}
-                  placeholder="Search for a job title..."
+                  onChange={(opt) => setJobTitle(opt ? opt.value : "")}
+                  onCreateOption={(input) => {
+                    const newOpt = { value: input, label: input };
+                    setJobOptions((prev) => [...prev, newOpt]); // add to list
+                    setJobTitle(input);                          // select it
+                  }}
+                  isClearable
+                  placeholder="Search or type a job title…"
+                  formatCreateLabel={(input) => `Add "${input}"`}
+                  noOptionsMessage={() => "Type to search or add a new title"}
                   className="border rounded-md text-sm"
                   menuPortalTarget={typeof document !== "undefined" ? document.body : null}
                   menuPosition="fixed"
@@ -405,6 +417,7 @@ const PersonalInfoModal = () => {
                     menu: (base) => ({ ...base, zIndex: 9999 })
                   }}
                 />
+
               </div>
 
               <div>
