@@ -166,6 +166,23 @@ const fetchTeams = async () => {
   }
 };
 
+async function handleEditTeamFolder(team) {
+  try {
+    const res = await fetch(`${API_URL}/api/teamInfo/first?teamId=${team.teamid}`, {
+      headers: authHeader(),
+    });
+    if (!res.ok) return navigate(`/teams/${team.teamid}`);
+
+    const { data } = await res.json();
+    // 👇 add state { contactOnly: true }
+    navigate(`/edit/team/${team.teamid}/contact`, {
+      state: { contactOnly: true },
+    });
+  } catch {
+    navigate(`/teams/${team.teamid}`);
+  }
+}
+
 // Also fix confirmTeamDelete - remove the redundant token manipulation:
 async function confirmTeamDelete() {
   if (!teamToDelete) return;
@@ -465,6 +482,7 @@ const confirmSingleDelete = async () => {
           team={t}
           count={teamCounts[t.teamid] ?? 0}
           onOpen={openTeamFolder}
+          onEdit={handleEditTeamFolder}   
           onDelete={handleDeleteTeamRequest}   // <-- add this
           tileHeightClass="h-[200px]"
         />
@@ -525,6 +543,7 @@ const confirmSingleDelete = async () => {
       team={t}
       count={teamCounts[t.teamid] ?? 0}
       onOpen={openTeamFolder}
+      onEdit={handleEditTeamFolder}   
       onDelete={handleDeleteTeamRequest}   // <-- add this
       tileHeightClass="h-[200px]"
     />
