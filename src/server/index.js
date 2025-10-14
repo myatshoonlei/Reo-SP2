@@ -24,8 +24,20 @@ const app = express();
 // Middleware
 app.use(cors({
 
-  origin: ["http://localhost:5173","https://longitude-reconstruction-sticky-priced.trycloudflare.com"],
+  origin: (origin, cb) => {
+    // allow tools like curl/Postman without origin
+    if (!origin) return cb(null, true);
 
+    try {
+      const host = new URL(origin).host;
+      const ok =
+        host === "localhost:5173" ||
+        /\.trycloudflare\.com$/i.test(host); // any tunnel
+      return cb(ok ? null : new Error("Not allowed by CORS"), ok);
+    } catch {
+      return cb(new Error("Bad origin"), false);
+    }
+  },
 
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true

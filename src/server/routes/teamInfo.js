@@ -1,10 +1,12 @@
 // teamInfo.js
 import express from "express";
+import multer from "multer";
 import pool from "../db.js";
 import { verifyToken } from "../middleware/auth.js";
 import QRCode from "qrcode";
 
 const router = express.Router();
+const upload = multer(); // in-memory
 
 /* ---------- small helpers ---------- */
 const clean = (v) => (v == null ? "" : String(v).replace(/^\s*'+/, "").trim());
@@ -240,6 +242,162 @@ router.get("/public/:teamId/member/:memberId", async (req, res) => {
     return res.json({ data: row });
   } catch (e) {
     console.error("public member error:", e);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ✅ GET /api/teamInfo/member/:id  (one member + styling) -------------- 
+router.get("/member/:id", verifyToken, async (req, res) => {
+  const memberId = parseInt(req.params.id, 10);
+  const userId = req.user.id;
+  if (!Number.isFinite(memberId)) return res.status(400).json({ error: "Invalid member ID" });
+
+  try {
+    const q = `
+      SELECT 
+        m.id, m.team_id, m.fullname, m.job_title, m.email, m.phone_number,
+        m.company_name, m.company_address, m.website, m.linkedin, m.github,
+        m.font_family, m.profile_photo, m.qr,
+
+        tc.template_id, tc.primary_color, tc.secondary_color, tc.logo,
+        t.component_key
+      FROM team_members m
+      JOIN team_cards   tc ON tc.teamid = m.team_id AND tc.userid = $2
+      LEFT JOIN template t  ON t.id = tc.template_id
+      WHERE m.id = $1
+      LIMIT 1;
+    `;
+    const r = await pool.query(q, [memberId, userId]);
+    if (!r.rows.length) return res.status(404).json({ error: "Member not found or unauthorized" });
+
+    const row = r.rows[0];
+    if (row.profile_photo) row.profile_photo = Buffer.from(row.profile_photo).toString("base64");
+    if (row.logo) row.logo = Buffer.from(row.logo).toString("base64");
+
+    return res.json({ data: row });
+  } catch (e) {
+    console.error("get member error:", e);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ✅ PUT /api/teamInfo/member/:id  (update text fields) -----------------
+router.put("/member/:id", verifyToken, async (req, res) => {
+  const memberId = parseInt(req.params.id, 10);
+  const userId = req.user.id;
+  if (!Number.isFinite(memberId)) return res.status(400).json({ error: "Invalid member ID" });
+
+  const b = req.body || {};
+  const vals = {
+    fullname: b.fullname,
+    job_title: b.job_title ?? b.jobTitle,
+    email: b.email,
+    phone_number: b.phone_number ?? b.phoneNumber,
+    company_address: b.company_address ?? b.companyAddress,
+    website: b.website,
+    linkedin: b.linkedin,
+    github: b.github,
+    font_family: b.font_family ?? b.fontFamily,
+    clearProfile: b.clearProfile === true,
+  };
+
+  try {
+    // ownership check
+    const own = await pool.query(
+      `SELECT m.id
+         FROM team_members m
+         JOIN team_cards tc ON tc.teamid = m.team_id
+        WHERE m.id = $1 AND tc.userid = $2`,
+      [memberId, userId]
+    );
+    if (!own.rowCount) return res.status(404).json({ error: "Member not found or unauthorized" });
+
+    const sql = `
+      UPDATE team_members
+         SET fullname        = COALESCE(NULLIF($1 ,''), fullname),
+             job_title       = COALESCE(NULLIF($2 ,''), job_title),
+             email           = COALESCE(NULLIF($3 ,''), email),
+             phone_number    = COALESCE(NULLIF($4 ,''), phone_number),
+             company_address = COALESCE(NULLIF($5 ,''), company_address),
+             website         = COALESCE(NULLIF($6 ,''), website),
+             linkedin        = COALESCE(NULLIF($7 ,''), linkedin),
+             github          = COALESCE(NULLIF($8 ,''), github),
+             font_family     = COALESCE(NULLIF($9 ,''), font_family),
+             profile_photo   = CASE WHEN $10 THEN NULL ELSE profile_photo END,
+             updated_at      = now()
+       WHERE id = $11
+       RETURNING *`;
+    const params = [
+      vals.fullname,
+      vals.job_title,
+      vals.email,
+      vals.phone_number,
+      vals.company_address,
+      vals.website,
+      vals.linkedin,
+      vals.github,
+      vals.font_family,
+      vals.clearProfile,
+      memberId,
+    ];
+
+    const r = await pool.query(sql, params);
+    return res.json({ message: "Member updated", data: r.rows[0] });
+  } catch (e) {
+    console.error("update member error:", e);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ✅ POST /api/teamInfo/member/:id/profile-photo  (upload) --------------
+router.post("/member/:id/profile-photo", verifyToken, upload.single("profile"), async (req, res) => {
+  const memberId = parseInt(req.params.id, 10);
+  const userId = req.user.id;
+  if (!Number.isFinite(memberId)) return res.status(400).json({ error: "Invalid member ID" });
+  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+
+  try {
+    // ownership
+    const own = await pool.query(
+      `SELECT m.id
+         FROM team_members m
+         JOIN team_cards tc ON tc.teamid = m.team_id
+        WHERE m.id = $1 AND tc.userid = $2`,
+      [memberId, userId]
+    );
+    if (!own.rowCount) return res.status(404).json({ error: "Member not found or unauthorized" });
+
+    await pool.query(`UPDATE team_members SET profile_photo = $1, updated_at = now() WHERE id = $2`, [
+      req.file.buffer,
+      memberId,
+    ]);
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("upload member profile error:", e);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ✅ GET /api/teamInfo/member/:id/profile-photo  (fetch image) ----------
+router.get("/member/:id/profile-photo", verifyToken, async (req, res) => {
+  const memberId = parseInt(req.params.id, 10);
+  const userId = req.user.id;
+  if (!Number.isFinite(memberId)) return res.status(400).json({ error: "Invalid member ID" });
+
+  try {
+    const r = await pool.query(
+      `SELECT m.profile_photo
+         FROM team_members m
+         JOIN team_cards tc ON tc.teamid = m.team_id
+        WHERE m.id = $1 AND tc.userid = $2`,
+      [memberId, userId]
+    );
+    const buf = r.rows[0]?.profile_photo;
+    if (!buf) return res.status(404).json({ error: "No profile photo" });
+    res.set("Content-Type", "image/jpeg");
+    return res.send(buf);
+  } catch (e) {
+    console.error("get member photo error:", e);
     return res.status(500).json({ error: "Server error" });
   }
 });
