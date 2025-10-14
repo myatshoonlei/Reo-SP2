@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { useEffect } from "react";
 import WelcomePage from "./pages/WelcomePage";
 import Login from "./pages/Login";
@@ -70,15 +70,22 @@ function AppContent() {
           <Route path="/contacts" element={<ContactsPage />} />
           <Route path="/verify-email-sent" element={<VerifyEmailSent />} />
           <Route path="/verify-email/:token" element={<VerifyEmail />} />
-          <Route path="/edit/mylinks/:cardId" element={<EditMyLinks />} />
-          <Route path="/edit/contact/:cardId" element={<EditContactSide />} />
 
+          {/* Public card viewing routes */}
           <Route path="/card/:id" element={<BusinessCardPage key={location.pathname} />} />
           <Route path="/team/:teamId/member/:memberId" element={<BusinessCardPage key={location.pathname} />} />
           <Route path="/qr-code-generator" element={<QRCodeGenerator />} />
 
-          {/* ✅ NEW: edit is a normal page route */}
-          <Route path="/edit/about/:cardId" element={<EditCardPage />} />
+          {/* ✅ PERSONAL CARD EDIT ROUTES */}
+          <Route path="/edit/about/:cardId" element={<EditCardPage mode="personal" />} />
+          <Route path="/edit/mylinks/:cardId" element={<EditMyLinks />} />
+          <Route path="/edit/contact/:cardId" element={<EditContactSide mode="personal" />} />
+
+          {/* ✅ TEAM MEMBER EDIT ROUTES */}
+          <Route path="/edit/team/:teamId/member/:memberId" element={<EditCardPage mode="team" />} />
+          <Route path="/edit/team/:teamId/member/:memberId/about" element={<EditCardPage mode="team" />} />
+          <Route path="/edit/team/:teamId/member/:memberId/contact" element={<EditContactSide mode="team" />} />
+          <Route path="/edit/team/:teamId/member/:memberId/mylinks" element={<EditMyLinks mode="team" />} />
           
           {/* Modal Routes - but they render over home */}
           <Route path="/create/*" element={<Home />} />

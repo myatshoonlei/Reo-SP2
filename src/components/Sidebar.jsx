@@ -1,14 +1,20 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 
 export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const params = useParams();
 
   const [activePage, setActivePage] = useState("My Cards");
   const [isMyCardsOpen, setIsMyCardsOpen] = useState(false);
   const [open, setOpen] = useState(false);
+
+  // Detect if we're in team edit mode
+  const isTeamEdit = location.pathname.includes("/edit/team/");
+  const teamId = params.teamId;
+  const memberId = params.memberId;
 
   useEffect(() => {
     const pathname = location.pathname;
@@ -33,30 +39,43 @@ export default function Sidebar() {
   };
 
   const openAboutEdit = () => {
-    const cardId = localStorage.getItem("personal_card_id");
-    if (cardId) navigate(`/edit/about/${cardId}`);
-    else {
-      alert("Please create a card first!");
-      navigate("/");
+    if (isTeamEdit && teamId && memberId) {
+      navigate(`/edit/team/${teamId}/member/${memberId}/about`);
+    } else {
+      const cardId = localStorage.getItem("personal_card_id");
+      if (cardId) navigate(`/edit/about/${cardId}`);
+      else {
+        alert("Please create a card first!");
+        navigate("/");
+      }
     }
     setOpen(false);
   };
+
   const openMyLinksEdit = () => {
-    const cardId = localStorage.getItem("personal_card_id");
-    if (cardId) navigate(`/edit/mylinks/${cardId}`);
-    else {
-      alert("Please create a card first!");
-      navigate("/");
+    if (isTeamEdit && teamId && memberId) {
+      navigate(`/edit/team/${teamId}/member/${memberId}/mylinks`);
+    } else {
+      const cardId = localStorage.getItem("personal_card_id");
+      if (cardId) navigate(`/edit/mylinks/${cardId}`);
+      else {
+        alert("Please create a card first!");
+        navigate("/");
+      }
     }
     setOpen(false);
   };
 
   const openContactEdit = () => {
-    const cardId = localStorage.getItem("personal_card_id");
-    if (cardId) navigate(`/edit/contact/${cardId}`);
-    else {
-      alert("Please create a card first!");
-      navigate("/");
+    if (isTeamEdit && teamId && memberId) {
+      navigate(`/edit/team/${teamId}/member/${memberId}/contact`);
+    } else {
+      const cardId = localStorage.getItem("personal_card_id");
+      if (cardId) navigate(`/edit/contact/${cardId}`);
+      else {
+        alert("Please create a card first!");
+        navigate("/");
+      }
     }
     setOpen(false);
   };
@@ -82,7 +101,6 @@ export default function Sidebar() {
           {item.label}
         </button>
       ))}
-      
     </div>
   );
 
@@ -130,7 +148,6 @@ export default function Sidebar() {
                 ) : (
                   <button
                     onClick={() => handleNavigation("/home")}
-                    // 👇 MODIFIED: Updated styles for the new UI
                     className={`w-full text-left px-4 py-3 text-md transition-all ${
                       activePage === "My Cards"
                         ? "bg-white text-[#0b2447] font-semibold shadow rounded-lg"
@@ -145,7 +162,6 @@ export default function Sidebar() {
                 <li key={item}>
                   <button
                     onClick={() => handleNavigation(`/${item.toLowerCase()}`)}
-                    // 👇 MODIFIED: Updated styles for the new UI
                     className={`w-full text-left px-4 py-3 text-md transition-all ${
                       activePage === item
                         ? "bg-white text-[#0b2447] font-semibold shadow rounded-lg"
@@ -184,7 +200,6 @@ export default function Sidebar() {
             ) : (
               <button
                 onClick={() => handleNavigation("/home")}
-                // 👇 MODIFIED: Updated styles for the new UI
                 className={`w-full text-left px-4 py-3 text-md transition-all ${
                   activePage === "My Cards"
                     ? "bg-white text-[#0b2447] font-semibold shadow rounded-lg"
@@ -199,7 +214,6 @@ export default function Sidebar() {
             <li key={item}>
               <button
                 onClick={() => handleNavigation(`/${item.toLowerCase()}`)}
-                // 👇 MODIFIED: Updated styles for the new UI
                 className={`w-full text-left px-4 py-3 text-md transition-all ${
                   activePage === item
                     ? "bg-white text-[#0b2447] font-semibold shadow rounded-lg"

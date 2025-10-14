@@ -11,8 +11,9 @@ import Template3 from "../components/templates/Template3";
 import Template4 from "../components/templates/Template4";
 import Template5 from "../components/templates/Template5";
 import Template6 from "../components/templates/Template6";
+import useEditApi from "../hooks/useEditApi";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const CardComponentById = {
   1: Template1,
   2: Template2,
@@ -24,7 +25,7 @@ const CardComponentById = {
 
 const DEFAULT_STACK = `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif`;
 
-export default function EditMyLinks() {
+export default function EditMyLinks({ mode = "personal" }) {
   const navigate = useNavigate();
   const { cardId: paramId } = useParams();
   const [cardId, setCardId] = useState(
@@ -63,67 +64,53 @@ export default function EditMyLinks() {
 
   const [showPhonePreview, setShowPhonePreview] = useState(true);
 
+  const api = useEditApi(mode);
+
   useEffect(() => {
     const load = async () => {
-      if (!cardId) {
-        setErr("No card selected");
-        setLoading(false);
-        return;
-      }
       try {
         setLoading(true);
         setErr("");
 
-        // Fetch base card (for preview + fallback values)
-        const baseRes = await fetch(`${API_BASE}/api/personal-card/${cardId}`, {
-          headers: { Authorization: token },
-        });
-        if (!baseRes.ok) throw new Error("Failed to load card");
-        const base = await baseRes.json();
+        const base = await api.load();
         const d = base?.data ?? base;
 
         setFullName(d.fullname ?? "");
         setJobTitle(d.job_title ?? d.jobTitle ?? "");
         setCompanyName(d.company_name ?? d.companyName ?? "");
+
+        // colors & font (team styling is merged in the hook for team mode)
         setPrimaryColor(d.primary_color ?? d.primaryColor ?? "#1F2937");
         setSecondaryColor(d.secondary_color ?? d.secondaryColor ?? "#f5f9ff");
         setFontFamily(d.font_family ?? d.fontFamily ?? DEFAULT_STACK);
-        const tId = Number(d.templateId);
-        const keyToId = {
-          template1: 1,
-          template2: 2,
-          template3: 3,
-          template4: 4,
-          template5: 5,
-          template6: 6,
-        };
-        const key = (d.component_key ?? d.componentKey ?? "").toString();
-        setTemplateId(
-          Number.isFinite(tId) && [1, 2, 3, 4, 5, 6].includes(tId)
-            ? tId
-            : keyToId[key] || 1
-        );
 
-        const logoB64 = d.logo || d.logoBase64;
+        // template id or legacy key
+        const tId = Number(d.template_id ?? d.templateId);
+        const keyToId = { template1:1, template2:2, template3:3, template4:4, template5:5, template6:6 };
+        const key = (d.component_key ?? d.componentKey ?? "").toString();
+        setTemplateId(Number.isFinite(tId) && [1,2,3,4,5,6].includes(tId) ? tId : keyToId[key] || 1);
+
+        // images
+        const logoB64  = d.logo || d.logoBase64;
         const photoB64 = d.profile_photo || d.profilePhoto;
         setLogo(logoB64 ? `data:image/png;base64,${logoB64}` : null);
         setProfilePhoto(photoB64 ? `data:image/jpeg;base64,${photoB64}` : null);
 
-        // Read contact + links directly from personal card
+        // links
         setEmail(d.email ?? "");
         setPhone(d.phone_number ?? d.phoneNumber ?? "");
         setWebsite(d.website ?? "");
         setGithub(d.github ?? "");
         setLinkedin(d.linkedin ?? "");
-      } catch (error) {
-        setErr("Failed to load card data");
+      } catch (e) {
+        setErr(e.message || "Failed to load card data");
       } finally {
         setLoading(false);
       }
     };
 
-    load();
-  }, [cardId, token]);
+     if (api?.id) load();
+ }, [mode, api?.id]);
 
   const saveAll = async () => {
     try {
@@ -140,11 +127,9 @@ export default function EditMyLinks() {
         linkedin,
       };
   
-      const res = await fetch(`${API_BASE}/api/personal-card/${cardId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: token },
-        body: JSON.stringify(payload),
-      });
+      // personal -> PUT /api/personal-card/:id
+      // team     -> PUT /api/teamInfo/member/:id
+      const res = await api.save(payload);
   
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));

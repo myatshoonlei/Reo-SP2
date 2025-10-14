@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import Cropper from "react-easy-crop"
-import getCroppedImg from "../utils/cropImage"   // <-- same util you already have
+import getCroppedImg from "../utils/cropImage"
+import useEditApi from "../hooks/useEditApi"
 
 import Navbar from "../components/Navbar"
 import Sidebar from "../components/Sidebar"
@@ -16,8 +17,6 @@ import Template4 from "../components/templates/Template4"
 import Template5 from "../components/templates/Template5"
 import Template6 from "../components/templates/Template6"
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000"
-
 const CardComponentById = {
   1: Template1,
   2: Template2,
@@ -27,9 +26,8 @@ const CardComponentById = {
   6: Template6,
 }
 
-
 const FONT_OPTIONS = [
-  { label: "System (Inter/Sans)", value: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif` },
+  { label: "System (Inter/Sans)", value: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif` },
   { label: "Neo Grotesk (Helvetica/Arial)", value: `"Helvetica Neue", Helvetica, Arial, "Noto Sans", sans-serif` },
   { label: "Humanist (Segoe/Leelawadee)", value: `"Segoe UI", "Leelawadee UI", Tahoma, Arial, sans-serif` },
   { label: "Rounded (Nunito-like)", value: `"Nunito", -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif` },
@@ -40,40 +38,41 @@ const FONT_OPTIONS = [
   { label: "Display (Impact/Haettenschweiler)", value: `Impact, Haettenschweiler, "Arial Narrow Bold", Arial, sans-serif` },
 ]
 
-export default function EditContactSide() {
+export default function EditContactSide({ mode: propMode }) {
   const navigate = useNavigate()
-  const { cardId: paramId } = useParams()
-  const [cardId, setCardId] = useState(paramId || localStorage.getItem("personal_card_id") || null)
-
-  // token normalization
-  const tokenRaw = localStorage.getItem("token")
-  const token = tokenRaw && !/^bearer /i.test(tokenRaw) ? `Bearer ${tokenRaw.replace(/^"|"$/g, "")}` : tokenRaw
+  const params = useParams()
+  
+  // Use mode from props (passed via Route), fallback to detecting from params
+  const mode = propMode || (params.teamId && params.memberId ? "team" : "personal")
+  const cardId = params.cardId || params.memberId || localStorage.getItem("personal_card_id") || null
+  
+  console.log('EditContactSide params:', params, 'mode:', mode, 'cardId:', cardId)
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState("")
   const [ok, setOk] = useState("")
 
-  // base card info for preview
+  // base card info
   const [fullName, setFullName] = useState("")
   const [jobTitle, setJobTitle] = useState("")
   const [companyName, setCompanyName] = useState("")
   const [companyAddress, setCompanyAddress] = useState("")
 
-  // appearance controls
+  // appearance (these come from team_cards for team mode)
   const [primaryColor, setPrimaryColor] = useState("#1F2937")
   const [secondaryColor, setSecondaryColor] = useState("#f5f9ff")
   const [fontFamily, setFontFamily] = useState(FONT_OPTIONS[0].value)
 
-  // contact-side fields shown in preview
+  // contact fields
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
 
-  // images (live preview urls)
+  // images
   const [profileUrl, setProfileUrl] = useState(null)
   const [logoUrl, setLogoUrl] = useState(null)
 
-  // pending upload files
+  // pending uploads
   const [profileFile, setProfileFile] = useState(null)
   const [logoFile, setLogoFile] = useState(null)
   const [removeProfile, setRemoveProfile] = useState(false)
@@ -82,60 +81,59 @@ export default function EditContactSide() {
   const [templateId, setTemplateId] = useState(1)
   const [showPhonePreview, setShowPhonePreview] = useState(false)
 
-  // ------- cropper state -------
+  // cropper state
   const [cropperOpen, setCropperOpen] = useState(false)
-  const [cropMode, setCropMode] = useState(null) // 'profile' | 'logo'
+  const [cropMode, setCropMode] = useState(null)
   const [cropImageSrc, setCropImageSrc] = useState(null)
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null)
 
-  // cleanup for blob URLs
   const prevBlobUrls = useRef([])
   const rememberBlob = (url) => url?.startsWith("blob:") && prevBlobUrls.current.push(url)
 
+  const api = useEditApi(mode)
+
   useEffect(() => {
     const load = async () => {
-      if (!cardId) {
+      const hasId = mode === "personal" ? cardId : api.id
+      if (!hasId) {
         setErr("No card selected")
         setLoading(false)
         return
       }
+      
       try {
         setLoading(true)
         setErr("")
 
-
-        const baseRes = await fetch(`${API_BASE}/api/personal-card/${cardId}`, {
-          headers: { Authorization: token },
-        })
-        if (!baseRes.ok) throw new Error("Failed to load card")
-        const base = await baseRes.json()
+        const base = await api.load()
         const d = base?.data ?? base
 
         setFullName(d.fullname ?? "")
         setJobTitle(d.job_title ?? d.jobTitle ?? "")
         setCompanyName(d.company_name ?? d.companyName ?? "")
         setCompanyAddress(d.company_address ?? d.companyAddress ?? "")
+        setEmail(d.email ?? "")
+        setPhone(d.phone_number ?? d.phoneNumber ?? "")
+        
+        // Colors and template come from team_cards in team mode
         setPrimaryColor(d.primary_color ?? d.primaryColor ?? "#1F2937")
         setSecondaryColor(d.secondary_color ?? d.secondaryColor ?? "#f5f9ff")
         setFontFamily(d.font_family ?? d.fontFamily ?? FONT_OPTIONS[0].value)
-        setEmail(d.email ?? "")
-        setPhone(d.phone_number ?? d.phoneNumber ?? "")
-        setTemplateId(d.template_id ?? d.templateId ?? 1)
+        
+        const tId = Number(d.template_id ?? d.templateId)
+        setTemplateId([1,2,3,4,5,6].includes(tId) ? tId : 1)
 
+        // Images
         const logoB64 = d.logo || d.logoBase64
         const photoB64 = d.profile_photo || d.profilePhoto
         setLogoUrl(logoB64 ? `data:image/png;base64,${logoB64}` : null)
         setProfileUrl(photoB64 ? `data:image/jpeg;base64,${photoB64}` : null)
 
-        localStorage.setItem("personal_card_id", cardId)
-
-        // also accept legacy component_key
-        const tId = Number(d.templateId)
-        const keyToId = { template1:1, template2:2, template3:3, template4:4, template5:5, template6:6 }
-        const key = (d.component_key ?? d.componentKey ?? "").toString()
-        setTemplateId(Number.isFinite(tId) && [1,2,3,4,5,6].includes(tId) ? tId : keyToId[key] || 1)
+        if (mode === "personal" && cardId) {
+          localStorage.setItem("personal_card_id", cardId)
+        }
       } catch (e) {
         setErr(e.message || "Could not load contact side")
       } finally {
@@ -148,9 +146,9 @@ export default function EditContactSide() {
       prevBlobUrls.current.forEach((u) => URL.revokeObjectURL(u))
       prevBlobUrls.current = []
     }
-  }, [cardId, token])
+  }, [mode, cardId, api.id])
 
-  // -------- file helpers --------
+  // helpers
   const fileToDataUrl = (file) =>
     new Promise((resolve, reject) => {
       const r = new FileReader()
@@ -164,7 +162,6 @@ export default function EditContactSide() {
     return new File([blob], name, { type: blob.type || "image/jpeg" })
   }
 
-  // -------- picking images -> open cropper --------
   const onProfileChange = async (e) => {
     const f = e.target.files?.[0]
     if (!f) return
@@ -187,10 +184,9 @@ export default function EditContactSide() {
 
   const onCropComplete = (_area, areaPixels) => setCroppedAreaPixels(areaPixels)
 
-  // confirm crop -> live preview + file for upload
   const handleCropConfirm = async () => {
     if (!cropImageSrc || !croppedAreaPixels || !cropMode) return
-    const objUrl = await getCroppedImg(cropImageSrc, croppedAreaPixels) // returns blob: URL
+    const objUrl = await getCroppedImg(cropImageSrc, croppedAreaPixels)
     rememberBlob(objUrl)
 
     if (cropMode === "profile") {
@@ -212,97 +208,98 @@ export default function EditContactSide() {
     setCropImageSrc(null)
   }
 
-  // -------- save (uploads first, then fields) --------
+  // Save function - handles both member fields AND team styling
   const saveAll = async () => {
     try {
       setSaving(true)
       setErr("")
       setOk("")
 
-      let cleanToken = tokenRaw
-      if (cleanToken?.startsWith('"') && cleanToken?.endsWith('"')) cleanToken = cleanToken.slice(1, -1)
-      if (cleanToken && !cleanToken.toLowerCase().startsWith("bearer ")) cleanToken = `Bearer ${cleanToken}`
-
+      // 1) Upload images first
       const uploads = []
-      if (profileFile) {
-
-        const fd = new FormData()
-        fd.append("profile", profileFile)
-        fd.append("cardId", cardId)
-        uploads.push(fetch(`${API_BASE}/api/profile-photo`, { method: "POST", headers: { Authorization: cleanToken }, body: fd }))
+      if (profileFile && api.uploadProfile) {
+        uploads.push(api.uploadProfile(profileFile))
       }
-      if (logoFile) {
-
-        const fd = new FormData()
-        fd.append("logo", logoFile)
-        fd.append("cardType", "Myself")
-        fd.append("cardId", cardId)
-        uploads.push(fetch(`${API_BASE}/api/upload-logo`, { method: "POST", headers: { Authorization: cleanToken }, body: fd }))
+      if (logoFile && api.uploadLogo) {
+        uploads.push(api.uploadLogo(logoFile))
       }
 
       if (uploads.length) {
-
-        const resArr = await Promise.all(uploads)
-        const bad = resArr.find((r) => !r.ok)
+        const results = await Promise.all(uploads)
+        const bad = results.find((r) => !r.ok)
         if (bad) {
-
           const j = await bad.json().catch(() => ({}))
           throw new Error(j?.error || j?.message || `Upload failed (${bad.status})`)
         }
-
       }
 
-      const basePayload = {
+      // 2) Save member text fields
+      const memberPayload = {
         fullname: fullName,
         job_title: jobTitle,
-        company_name: companyName,
-        company_address: companyAddress,
-        phone_number: phone,
         email,
-        primary_color: primaryColor,
-        secondary_color: secondaryColor,
+        phone_number: phone,
+        company_address: companyAddress,
         font_family: fontFamily,
-        clearLogo: removeLogo,
         clearProfile: removeProfile,
       }
 
-
-
-      const baseRes = await fetch(`${API_BASE}/api/personal-card/${cardId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: cleanToken },
-        body: JSON.stringify(basePayload),
-      })
-
-
-      
-      if (!baseRes.ok) {
-        const errorText = await baseRes.text().catch(() => "")
-        let message = `Save failed (${baseRes.status})`
-        if (errorText) {
-          try { message = JSON.parse(errorText)?.error || JSON.parse(errorText)?.message || message }
-          catch { if (errorText.length < 120) message = errorText }
-        }
-        throw new Error(message)
+      const memberRes = await api.save(memberPayload)
+      if (!memberRes.ok) {
+        const txt = await memberRes.text().catch(() => "")
+        throw new Error(txt || "Failed to save member data")
       }
 
+      // 3) If team mode, save colors separately to team_cards
+      if (mode === "team" && api.saveTeamStyling) {
+        const stylingPayload = {
+          primaryColor,
+          secondaryColor,
+          ...(removeLogo ? { logo: null } : {}),
+        }
+
+        const stylingRes = await api.saveTeamStyling(stylingPayload)
+        if (!stylingRes.ok) {
+          const txt = await stylingRes.text().catch(() => "")
+          throw new Error(txt || "Failed to save team styling")
+        }
+      }
 
       setOk("Saved!")
       setTimeout(() => setOk(""), 1200)
       setProfileFile(null)
       setLogoFile(null)
-
       setRemoveProfile(false)
       setRemoveLogo(false)
     } catch (e) {
-
       setErr(e.message || "Save failed")
     } finally {
       setSaving(false)
     }
   }
 
-  const closeModal = () => navigate("/home", { state: { updatedCard: true } })
+  const closeModal = () => {
+    if (mode === "team") {
+      navigate(`/teams/${params.teamId}`)
+    } else {
+      navigate("/home")
+    }
+  }
+
+  // Navigation helpers
+  const goToVirtualCard = () => {
+    if (mode === "team") {
+      navigate(`/edit/team/${params.teamId}/member/${params.memberId}/about`)
+    } else {
+      navigate(`/edit/about/${cardId}`)
+    }
+  }
+
+  const goToMyLinks = () => {
+    if (mode === "personal") {
+      navigate(`/edit/mylinks/${cardId}`)
+    }
+  }
 
   if (loading) {
     return (
@@ -314,7 +311,6 @@ export default function EditContactSide() {
   }
 
   const CardComponent = CardComponentById[templateId] || Template1
-  
 
   const cardProps = {
     fullName,
@@ -324,19 +320,12 @@ export default function EditContactSide() {
     phoneNumber: phone,
     email,
     profile_photo: removeProfile ? null : profileUrl,
-    logo: removeLogo ? null : logoUrl,               // live preview (blob) wins
+    logo: removeLogo ? null : logoUrl,
     primary_color: primaryColor,
     secondary_color: secondaryColor,
     font_family: fontFamily,
     fontFamily,
-    sizeName: 22,
-    sizeTitle: 16,
-    sizeCompany: 15,
-    sizeEmail: 13,
-    sizePhone: 14,
-    sizeAddress: 12,
   }
-
 
   const phonePreviewProps = {
     name: fullName || "Your Name",
@@ -345,17 +334,19 @@ export default function EditContactSide() {
     phone: phone || "Phone",
     email: email || "email@example.com",
     avatar: removeProfile ? null : profileUrl,
-    logo: removeLogo ? null : logoUrl,               // live preview too
+    logo: removeLogo ? null : logoUrl,
   }
+
+  // Team mode: colors are read-only from team card
+  const colorsReadOnly = mode === "team"
 
   return (
     <div className="min-h-screen font-inter bg-gradient-to-b from-[#F3F9FE] to-[#C5DBEC]">
       <Navbar onSave={saveAll} saving={saving} onClose={closeModal} />
-
       <div className="flex pt-24">
         <Sidebar />
-
         <div className="flex-1 px-6 pt-4 h-[calc(100vh-80px)] overflow-hidden">
+
           {(err || ok) && (
             <div className="pt-3">
               {err && <div className="mb-2 p-2 rounded bg-red-50 text-red-700">{err}</div>}
@@ -364,15 +355,16 @@ export default function EditContactSide() {
           )}
 
           <div className="grid grid-cols-11 gap-4 items-start h-full">
-
             <main className="col-span-11 md:col-span-8 lg:col-span-7 space-y-4">
               <div className="rounded-2xl bg-white shadow-sm border border-[#d6e6fb] overflow-hidden">
-
                 <div className="p-4 border-b">
                   <h2 className="text-lg font-semibold text-[#0b2447]">Contact Side Appearance</h2>
-                  <p className="text-sm text-slate-500">Fonts, colors, and images for your contact side.</p>
+                  <p className="text-sm text-slate-500">
+                    {colorsReadOnly 
+                      ? "Profile photo and font for this member. Colors/logo are managed at team level." 
+                      : "Fonts, colors, and images for your contact side."}
+                  </p>
                 </div>
-
 
                 <div className="p-4 border-b grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
@@ -396,71 +388,99 @@ export default function EditContactSide() {
                       Remove Profile Photo
                     </button>
                   </div>
-
-                  <div>
-                    <UploadTile
-                      title="Company Logo"
-                      shape="square"
-                      previewUrl={!removeLogo ? logoUrl : null}
-                      onFileChange={onLogoChange}
-                      helper="Transparent PNG recommended"
-                      buttonLabel="Upload"
-                    />
-                    <button
-                      type="button"
-                      className="mt-2 text-sm px-3 py-1.5 border rounded-lg hover:bg-[#f2f7fd]"
-                      onClick={() => {
-                        setRemoveLogo(true)
-                        setLogoFile(null)
-                        setLogoUrl(null)
-                      }}
-                    >
-                      Remove Logo
-                    </button>
-                  </div>
+                  
+                  {!colorsReadOnly && (
+                    <div>
+                      <UploadTile
+                        title="Company Logo"
+                        shape="square"
+                        previewUrl={!removeLogo ? logoUrl : null}
+                        onFileChange={onLogoChange}
+                        helper="Transparent PNG recommended"
+                        buttonLabel="Upload"
+                      />
+                      <button
+                        type="button"
+                        className="mt-2 text-sm px-3 py-1.5 border rounded-lg hover:bg-[#f2f7fd]"
+                        onClick={() => {
+                          setRemoveLogo(true)
+                          setLogoFile(null)
+                          setLogoUrl(null)
+                        }}
+                      >
+                        Remove Logo
+                      </button>
+                    </div>
+                  )}
                 </div>
-
 
                 <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm text-[#0b2447]">Primary Color</label>
+                    <label className="text-sm text-[#0b2447]">
+                      Primary Color {colorsReadOnly && <span className="text-xs text-slate-400">(Team-wide)</span>}
+                    </label>
                     <div className="mt-1 flex items-center gap-3">
-                      <input type="color" value={primaryColor} onChange={(e)=>setPrimaryColor(e.target.value)} className="h-10 w-14 p-0 border rounded" />
-                      <input type="text" value={primaryColor} onChange={(e)=>setPrimaryColor(e.target.value)} className="flex-1 border rounded-lg px-3 py-2" />
+                      <input 
+                        type="color" 
+                        value={primaryColor} 
+                        onChange={(e)=>setPrimaryColor(e.target.value)} 
+                        className="h-10 w-14 p-0 border rounded" 
+                        disabled={colorsReadOnly}
+                      />
+                      <input 
+                        type="text" 
+                        value={primaryColor} 
+                        onChange={(e)=>setPrimaryColor(e.target.value)} 
+                        className="flex-1 border rounded-lg px-3 py-2 disabled:bg-gray-50 disabled:text-gray-500" 
+                        disabled={colorsReadOnly}
+                      />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-sm text-[#0b2447]">Background Color</label>
+                    <label className="text-sm text-[#0b2447]">
+                      Background Color {colorsReadOnly && <span className="text-xs text-slate-400">(Team-wide)</span>}
+                    </label>
                     <div className="mt-1 flex items-center gap-3">
-                      <input type="color" value={secondaryColor} onChange={(e)=>setSecondaryColor(e.target.value)} className="h-10 w-14 p-0 border rounded" />
-                      <input type="text" value={secondaryColor} onChange={(e)=>setSecondaryColor(e.target.value)} className="flex-1 border rounded-lg px-3 py-2" />
+                      <input 
+                        type="color" 
+                        value={secondaryColor} 
+                        onChange={(e)=>setSecondaryColor(e.target.value)} 
+                        className="h-10 w-14 p-0 border rounded" 
+                        disabled={colorsReadOnly}
+                      />
+                      <input 
+                        type="text" 
+                        value={secondaryColor} 
+                        onChange={(e)=>setSecondaryColor(e.target.value)} 
+                        className="flex-1 border rounded-lg px-3 py-2 disabled:bg-gray-50 disabled:text-gray-500" 
+                        disabled={colorsReadOnly}
+                      />
                     </div>
                   </div>
 
                   <div className="sm:col-span-2">
                     <label className="text-sm text-[#0b2447]">Font Style</label>
-                    <select className="mt-1 w-full border rounded-xl px-3 py-2" value={fontFamily} onChange={(e)=>setFontFamily(e.target.value)}>
+                    <select 
+                      className="mt-1 w-full border rounded-xl px-3 py-2" 
+                      value={fontFamily} 
+                      onChange={(e)=>setFontFamily(e.target.value)}
+                    >
                       {FONT_OPTIONS.map((f)=>(
                         <option key={f.label} value={f.value}>{f.label}</option>
                       ))}
                     </select>
-
                   </div>
                 </div>
               </div>
             </main>
 
-
             <aside className="col-span-11 md:col-span-4 self-center justify-center">
-
               <div className="md:sticky md:top-24 pr-2">
-
                 <div className="relative w-full max-w-sm mx-auto" style={{ perspective: "1000px" }}>
                   <div className="text-sm text-center mb-2 text-[#0b2447] opacity-80">
                     Click to switch to {showPhonePreview ? "Card View" : "Phone Preview"}
                   </div>
-
 
                   <div
                     className="relative w-full h-[520px] cursor-pointer transition-transform duration-700 ease-in-out"
@@ -469,18 +489,17 @@ export default function EditContactSide() {
                   >
                     <div className="absolute inset-0" style={{ backfaceVisibility: "hidden", transform: "rotateY(0deg)" }}>
                       <div className="mx-auto w-[360px] h-[220px] rounded-xl overflow-hidden shadow relative bg-white" style={{ fontFamily }}>
-                        <CardComponent  {...cardProps} side="front" style={{ width: "100%", height: "100%" }} />
+                        <CardComponent {...cardProps} side="front" style={{ width: "100%", height: "100%" }} />
                       </div>
                     </div>
 
                     <div className="absolute inset-0" style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)", transformOrigin: "top center" }}>
                       <div style={{ transform: "scale(0.95)", transformOrigin: "top center" }}>
-                        <PhonePreview {...phonePreviewProps}  />
+                        <PhonePreview {...phonePreviewProps} />
                       </div>
                     </div>
                   </div>
                 </div>
-
 
                 <div className="mt-3 flex items-center gap-3 justify-center">
                   <span className="inline-flex items-center gap-2 text-xs text-slate-600">
@@ -498,7 +517,6 @@ export default function EditContactSide() {
         </div>
       </div>
 
-      {/* Cropper modal */}
       {cropperOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 flex justify-center items-center">
           <div className="relative w-[320px] h-[360px] bg-white rounded-lg p-3">
@@ -521,20 +539,6 @@ export default function EditContactSide() {
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-function LabeledInput({ label, value, onChange, type = "text" }) {
-  return (
-    <div>
-      <label className="text-sm text-[#0b2447]">{label}</label>
-      <input
-        type={type}
-        className="w-full border rounded-xl px-3 py-2 mt-1"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
     </div>
   )
 }

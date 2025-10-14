@@ -31,8 +31,23 @@ export default function Home() {
     template6: Template6,
     templatevmes: TemplateVmes, // <-- Add this line
   };
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const API_URL = import.meta.env.VITE_API_URL || window.location.origin;
   const BASE = import.meta.env.VITE_PUBLIC_BASE_URL || window.location.origin;
+
+  // At the top of your Home.jsx, replace the authHeader function with this:
+
+function authHeader() {
+  let t = localStorage.getItem("token") || "";
+  // Remove surrounding quotes if present
+  if (t.startsWith('"') && t.endsWith('"')) {
+    t = t.slice(1, -1);
+  }
+  // Ensure Bearer prefix (case-insensitive check)
+  if (t && !/^bearer /i.test(t)) {
+    t = `Bearer ${t}`;
+  }
+  return { Authorization: t };
+}
 
   const [cards, setCards] = useState([]);
   const tokenRaw = localStorage.getItem("token");
@@ -81,80 +96,105 @@ export default function Home() {
     }
   }, [location.key, location.state, navigate]);
 
-  const fetchCards = async () => {
-    let token = tokenRaw;
-    if (token?.startsWith('"') && token?.endsWith('"')) token = token.slice(1, -1);
-    if (token?.toLowerCase().startsWith("bearer ")) token = token.slice(7);
-  
-    if (!token) {
-      setCards([]);
-      return;
-    }
-  
-    try {
-      const res = await fetch(`${API_URL}/api/personal-card/all`, {
-        headers: { Authorization: `Bearer ${token}` },
-        
-      });
-  
-      if (!res.ok) {
-        throw new Error(`Failed to fetch cards: ${res.status} ${res.statusText}`);
-      }
-  
-      const data = await res.json();
-      console.log("Fetched cards from server:", data);
-  
-      // Normalize logos so no raw '/9j/...' strings reach <img>
-      const normalized = (Array.isArray(data) ? data : []).map((c) => ({
-        ...c,
-        logo: getLogoSrc(c.logo),
-      }));
-  
-      setCards(normalized);
-    } catch (error) {
-      console.error("Error fetching cards:", error);
-      setCards([]); // fail-safe
-    }
-  };
+  // Then in fetchCards, simplify it:
+const fetchCards = async () => {
+  try {
+    const res = await fetch(`${API_URL}/api/personal-card/all`, {
+      headers: authHeader(), // Just use authHeader() directly
+    });
 
-  const fetchTeams = async () => {
-        let token = tokenRaw;
-        if (token?.startsWith('"') && token?.endsWith('"')) token = token.slice(1, -1);
-        if (token?.toLowerCase().startsWith("bearer ")) token = token.slice(7);
-        if (!token) {
-          setTeams([]);
-          return;
-        }
-        try {
-          // list teams (you already have GET /api/teamcard/)
-          const res = await fetch(`${API_URL}/api/teamcard/`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const json = await res.json();
-          const list = (json?.data || []).map(t => ({
-            ...t,
-            // normalize like TeamMembersPage does
-            logo: getLogoSrc(t.logo),
-          }));
-          setTeams(list);
+    if (!res.ok) {
+      console.error(`Failed to fetch cards: ${res.status} ${res.statusText}`);
+      const errorText = await res.text();
+      console.error('Error response:', errorText);
+      throw new Error(`Failed to fetch cards: ${res.status}`);
+    }
+
+    const data = await res.json();
+    console.log("Fetched cards from server:", data);
+
+    const normalized = (Array.isArray(data) ? data : []).map((c) => ({
+      ...c,
+      logo: getLogoSrc(c.logo),
+    }));
+
+    setCards(normalized);
+  } catch (error) {
+    console.error("Error fetching cards:", error);
+    setCards([]);
+  }
+};
+
+// And in fetchTeams:
+const fetchTeams = async () => {
+  try {
+    const res = await fetch(`${API_URL}/api/teamcard/`, {
+      headers: authHeader(), // Just use authHeader() directly
+    });
+
+    if (!res.ok) {
+      console.error(`Failed to fetch teams: ${res.status} ${res.statusText}`);
+      const errorText = await res.text();
+      console.error('Error response:', errorText);
+      throw new Error(`Failed to fetch teams: ${res.status}`);
+    }
+
+    const json = await res.json();
+    const list = (json?.data || []).map(t => ({
+      ...t,
+      logo: getLogoSrc(t.logo),
+    }));
+    setTeams(list);
+
+    // Fetch counts
+    try {
+      const cr = await fetch(`${API_URL}/api/teamInfo/counts`, {
+        headers: authHeader(),
+      });
+      if (cr.ok) {
+        const cj = await cr.json();
+        const map = {};
+        (cj?.data || []).forEach(row => (map[row.team_id] = row.count));
+        setTeamCounts(map);
+      }
+    } catch {
+      // counts are optional
+    }
+  } catch (e) {
+    console.error("Fetch teams failed:", e);
+    setTeams([]);
+  }
+};
+
+// Also fix confirmTeamDelete - remove the redundant token manipulation:
+async function confirmTeamDelete() {
+  if (!teamToDelete) return;
+  setIsDeletingTeam(true);
+  try {
+    const res = await fetch(`${API_URL}/api/teamcard/${teamToDelete.teamid}`, {
+      method: "DELETE",
+      headers: authHeader(), // Just use authHeader() directly
+    });
     
-          // optional: fetch counts to show in folder
-          try {
-            const cr = await fetch(`${API_URL}/api/teamInfo/counts`, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            const cj = await cr.json();
-            const map = {};
-            (cj?.data || []).forEach(row => (map[row.team_id] = row.count));
-            setTeamCounts(map);
-          } catch {
-            /* counts are optional */
-          }
-        } catch (e) {
-          console.error("Fetch teams failed:", e);
-          setTeams([]);
-        }
-      };
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      throw new Error(j?.error || `Delete failed (${res.status})`);
+    }
+
+    setTeams(prev => prev.filter(t => t.teamid !== teamToDelete.teamid));
+    setTeamCounts(prev => {
+      const next = { ...prev };
+      delete next[teamToDelete.teamid];
+      return next;
+    });
+  } catch (e) {
+    console.error(e);
+    alert(e.message || "Failed to delete team.");
+  } finally {
+    setIsDeletingTeam(false);
+    setTeamToDelete(null);
+  }
+}
     
       const openTeamFolder = (teamId) => {
         navigate(`/teams/${teamId}`);
@@ -172,7 +212,7 @@ export default function Home() {
 
           const res = await fetch(`${API_URL}/api/teamcard/${teamToDelete.teamid}`, {
             method: "DELETE",
-            headers: { Authorization: `Bearer ${token}` },
+            headers: { ...authHeader() },
           });
           if (!res.ok) {
             const j = await res.json().catch(() => ({}));
@@ -221,30 +261,6 @@ const handleCloseModal = () => {
   setSearchParams(searchParams);
 };
 
-
-// Delete: call your API then refresh
-const handleDeleteCard = async (c) => {
-  if (!confirm("Delete this card?")) return;
-
-  let token = tokenRaw;
-  if (token?.startsWith('"') && token?.endsWith('"')) token = token.slice(1, -1);
-  if (token?.toLowerCase().startsWith("bearer ")) token = token.slice(7);
-
-  try {
-    const res = await fetch(`${API_URL}/api/personal-card/${c.id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
-    await fetchCards();
-  } catch (e) {
-    console.error(e);
-    alert("Could not delete. Please try again.");
-  }
-};
-
-
-
 const handleSingleDeleteRequest = (card) => {
   setCardToDelete(card);
 };
@@ -261,7 +277,7 @@ const confirmSingleDelete = async () => {
   try {
     const res = await fetch(`${API_URL}/api/personal-card/${cardToDelete.id}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { ...authHeader() },
     });
 
     if (!res.ok) {
@@ -476,7 +492,7 @@ const confirmSingleDelete = async () => {
           key={card.id}
           card={card}
           TemplateComponent={TemplateComponent}
-          onEdit={handleEditCard}
+          onEdit={(c) => navigate(`/edit/about/${card.id}`)} // 👈 here
           onShare={handleShare}
           onDelete={handleSingleDeleteRequest}
           isSelectMode={false}

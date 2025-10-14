@@ -79,6 +79,9 @@ router.put("/:id", verifyToken, async (req, res) => {
     }
   }
 
+  // always bump the timestamp
+  sets.push(`updated_at = NOW()`);
+
   if (sets.length === 0) {
     return res.status(400).json({ error: "No updatable fields supplied" });
   }
