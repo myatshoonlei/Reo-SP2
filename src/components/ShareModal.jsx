@@ -1,4 +1,4 @@
-import { X, Share, ImageDown, QrCode } from 'lucide-react';
+import { X, Copy, ImageDown, QrCode } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import ReactDOM from 'react-dom/client';
 import QRCode from 'qrcode';
@@ -51,7 +51,7 @@ export default function ShareModal({ card, onClose, cardRef, TemplateComponent, 
 
   const handleDownloadImage = async () => {
 
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5050";
     if (!TemplateComponent) {
       alert("Template component is missing.");
       return;
@@ -260,7 +260,7 @@ export default function ShareModal({ card, onClose, cardRef, TemplateComponent, 
         </button>
         <h3 className="text-lg font-semibold text-gray-800 mb-6">Share your card</h3>
         <div className="flex justify-around items-start">
-          <ActionButton Icon={Share} label="Share To" onClick={handleShareLink} colors="bg-blue-100 text-blue-600 hover:bg-blue-200" />
+          <ActionButton Icon={Copy} label="Copy Link" onClick={handleShareLink} colors="bg-blue-100 text-blue-600 hover:bg-blue-200" />
           <ActionButton Icon={ImageDown} label="Download Card" onClick={handleDownloadImage} colors="bg-green-100 text-green-600 hover:bg-green-200" />
           <ActionButton Icon={QrCode} label="Download QR" onClick={handleDownloadQr} colors="bg-purple-100 text-purple-600 hover:bg-purple-200" />
         </div>

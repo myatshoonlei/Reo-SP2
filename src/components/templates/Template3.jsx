@@ -36,7 +36,7 @@ const Template3 = (rawProps) => {
   if (side === "back") {
     return (
       <div
-        className="w-full h-[200px] rounded-xl border shadow-md p-4 font-inter flex items-center justify-center"
+        className="w-full h-[200px] rounded-xl border shadow-md p-4 flex items-center justify-center"
         style={{ backgroundColor: secondary_color, color: primary_color, fontFamily: font_family }}
       >
         <div className="w-full h-full flex flex-col items-center justify-center">
@@ -69,7 +69,7 @@ const Template3 = (rawProps) => {
   /* -------------------- FRONT SIDE (Glassmorphism) -------------------- */
   return (
     <div
-      className="relative w-full h-[200px] rounded-xl shadow-lg font-sans overflow-hidden hover:shadow-xl transition-all duration-300 text-white"
+      className="relative w-full h-[200px] rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 text-white"
       style={{ backgroundColor: secondary_color, color: primary_color, fontFamily: font_family }}
     >
       {/* Gradient Background */}
@@ -121,4 +121,3 @@ const Template3 = (rawProps) => {
 };
 
 export default Template3;
-

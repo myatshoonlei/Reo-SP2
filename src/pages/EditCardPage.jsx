@@ -55,6 +55,26 @@ const buildTemplateProps = (raw = {}) => {
   };
   return props;
 };
+const DEFAULT_AVATAR =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(`
+<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'>
+  <rect fill='#f1f5f9' width='100%' height='100%'/>
+  <circle cx='150' cy='120' r='60' fill='#cbd5e1'/>
+  <rect x='75' y='200' width='150' height='60' rx='30' fill='#cbd5e1'/>
+  <text x='150' y='285' text-anchor='middle' font-size='14' fill='#94a3b8'>Add photo</text>
+</svg>
+`);
+
+const DEFAULT_LOGO =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(`
+<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'>
+  <rect fill='#f8fafc' width='100%' height='100%'/>
+  <rect x='75' y='90' width='150' height='120' rx='15' fill='#cbd5e1'/>
+  <text x='150' y='250' text-anchor='middle' font-size='14' fill='#94a3b8'>Add logo</text>
+</svg>
+`);
 
 export default function EditCardPage({ mode = "personal", initialCardId, onClose, onSaved }) {
   const token = localStorage.getItem("token");
@@ -86,6 +106,9 @@ export default function EditCardPage({ mode = "personal", initialCardId, onClose
   const [fontFamily, setFontFamily] = useState(
     `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif`
   );
+  const [website, setWebsite] = useState("");
+  const [github, setGithub] = useState("");
+  const [linkedin, setLinkedin] = useState("");
 
   const [profileImageUrl, setProfileImageUrl] = useState(null);
   const [companyLogoUrl, setCompanyLogoUrl] = useState(null);
@@ -93,7 +116,7 @@ export default function EditCardPage({ mode = "personal", initialCardId, onClose
   const [profileFile, setProfileFile] = useState(null);
   const [logoFile, setLogoFile] = useState(null);
 
-  const [showPhonePreview, setShowPhonePreview] = useState(true); // Start with phone view
+  const [showPhonePreview, setShowPhonePreview] = useState(false); // Start with phone view
   const [templateId, setTemplateId] = useState(1);
   const [primaryColor, setPrimaryColor] = useState("#1F2937");
   const [secondaryColor, setSecondaryColor] = useState("#f5f9ff");
@@ -143,6 +166,10 @@ export default function EditCardPage({ mode = "personal", initialCardId, onClose
         setCompanyAddress(d.company_address ?? d.companyAddress ?? "");
         setBio(d.bio || "");
         setFontFamily(d.font_family ?? d.fontFamily ?? fontFamily);
+        setWebsite(d.website ?? "");
+        setGithub(d.github ?? "");
+        setLinkedin(d.linkedin ?? "");
+        
 
         const logoB64 = d.logo || d.logoBase64;
         const photoB64 = d.profile_photo || d.profilePhoto;
@@ -201,8 +228,32 @@ export default function EditCardPage({ mode = "personal", initialCardId, onClose
       if (!api?.id) throw new Error("No card/member to update.");
 
       const uploads = [];
-      if (profileFile && api.uploadProfile) uploads.push(api.uploadProfile(profileFile));
-      if (logoFile && api.uploadLogo) uploads.push(api.uploadLogo(logoFile));
+      if (profileFile) {
+        const fd = new FormData();
+        fd.append("profile", profileFile);
+        fd.append("cardId", cardId);
+        uploads.push(
+          fetch(`${API_BASE}/api/profile-photo`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            body: fd,
+          })
+        );
+      }
+
+      if (logoFile) {
+        const fd = new FormData();
+        fd.append("logo", logoFile);
+        fd.append("cardType", "Myself");
+        fd.append("cardId", cardId);
+        uploads.push(
+          fetch(`${API_BASE}/api/upload-logo`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            body: fd,
+          })
+        );
+      }
 
       if (uploads.length) {
         const resArr = await Promise.all(uploads);
@@ -235,7 +286,7 @@ export default function EditCardPage({ mode = "personal", initialCardId, onClose
       setProfileFile(null);
       setLogoFile(null);
       setOk("Saved!");
-      onSaved?.();
+      onSaved && onSaved();
       setTimeout(() => setOk(""), 1200);
     } catch (e) {
       setErr(e.message || "Save failed");
@@ -290,13 +341,17 @@ export default function EditCardPage({ mode = "personal", initialCardId, onClose
     company_name: companyName,
     phone_number: phoneNumber,
     email,
-    profile_photo: profileImageUrl,
-    logo: companyLogoUrl, // Use the preview URL (works for both blob: and data: URLs)
+    profile_photo: profileImageUrl || DEFAULT_AVATAR,
+    logo: companyLogoUrl || DEFAULT_LOGO,
+
     primary_color: primaryColor,
     secondary_color: secondaryColor,
     company_address: companyAddress,
     font_family: fontFamily,
     fontFamily,
+    website,
+    github,
+    linkedin,
   };
 
   const CardComponentById = {
@@ -403,11 +458,12 @@ export default function EditCardPage({ mode = "personal", initialCardId, onClose
                   <UploadTile
                     title="Profile Picture"
                     shape="square"
-                    previewUrl={profileImageUrl || null}
+                    previewUrl={profileImageUrl || DEFAULT_AVATAR}
                     onFileChange={onProfileFileChange}
                     helper="PNG/JPG up to 5MB"
                     buttonLabel="Upload"
                   />
+          
                   {!isTeam && (
                     <UploadTile
                       title="Company Logo"
@@ -418,6 +474,7 @@ export default function EditCardPage({ mode = "personal", initialCardId, onClose
                       buttonLabel="Upload"
                     />
                   )}
+                  
                 </div>
 
                 {/* fields */}
@@ -459,25 +516,57 @@ export default function EditCardPage({ mode = "personal", initialCardId, onClose
 
             {/* right phone preview */}
             <aside className="col-span-11 md:col-span-4 self-center justify-center">
+              {/* keep it visible and start near the top of the page */}
               <div className="md:sticky md:top-24 pr-2">
-                <div className="relative w-full max-w-sm mx-auto" style={{ perspective: "1000px" }}>
+                {/* perspective on parent */}
+                <div
+                  className="relative w-full max-w-sm mx-auto"
+                  style={{ perspective: "1000px" }}
+                >
                   <div className="text-sm text-center mb-2 text-[#0b2447] opacity-80">
-                    Click to switch to {showPhonePreview ? "Card View" : "Phone Preview"}
+                    Click to switch to{" "}
+                    {showPhonePreview ? "Card View" : "Phone Preview"}
                   </div>
 
+                  {/* flip container */}
                   <div
                     className="relative w-full h-[520px] cursor-pointer transition-transform duration-700 ease-in-out"
                     style={{
                       transformStyle: "preserve-3d",
-                      transform: showPhonePreview ? "rotateY(0deg)" : "rotateY(180deg)",
+                      transform: showPhonePreview
+                        ? "rotateY(180deg)"
+                        : "rotateY(0deg)",
                     }}
                     onClick={() => setShowPhonePreview((prev) => !prev)}
                   >
-                    {/* FRONT: Phone preview (default view) */}
+                    {/* FRONT: Card view */}
                     <div
                       className="absolute inset-0"
-                      style={{ backfaceVisibility: "hidden", transform: "rotateY(0deg)" }}
+                      style={{
+                        backfaceVisibility: "hidden",
+                        transform: "rotateY(0deg)",
+                      }}
                     >
+                      <div className="mx-auto w-[360px] h-[220px] rounded-xl overflow-hidden shadow relative bg-white">
+                        <CardComponent
+                          {...p}
+                          logo={p.logoUrl || p.logo}
+                          side="front"
+                          style={{ width: "100%", height: "100%" }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* BACK: Phone preview */}
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        backfaceVisibility: "hidden",
+                        transform: "rotateY(180deg)",
+                        transformOrigin: "top center",
+                      }}
+                    >
+                      {/* scale down slightly so the entire phone fits */}
                       <div
                         style={{
                           transform: "scale(0.95)",
@@ -490,28 +579,11 @@ export default function EditCardPage({ mode = "personal", initialCardId, onClose
                           company={p.companyName || "Company"}
                           phone={p.phoneNumber || "Phone"}
                           email={p.email || "email@example.com"}
-                          avatar={profileImageUrl}
-                          logo={companyLogoUrl}
-                        />
-                      </div>
-                    </div>
-
-                    {/* BACK: Card view */}
-                    <div
-                      className="absolute inset-0"
-                      style={{
-                        backfaceVisibility: "hidden",
-                        transform: "rotateY(180deg)",
-                        transformOrigin: "top center",
-                      }}
-                    >
-                      <div className="mx-auto w-[360px] h-[220px] rounded-xl overflow-hidden shadow relative bg-white">
-                        <CardComponent
-                          {...p}
-                          logo={companyLogoUrl}
-                          profile_photo={profileImageUrl}
-                          side="front"
-                          style={{ width: "100%", height: "100%" }}
+                          avatar={p.profile_photo}
+                          logo={p.logoUrl || p.logo}
+                          website={website} // ⬅️ add
+                          github={github} // ⬅️ add
+                          linkedin={linkedin} // ⬅️ add
                         />
                       </div>
                     </div>

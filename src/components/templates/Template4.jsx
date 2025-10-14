@@ -40,7 +40,7 @@ const Template4 = (rawProps) => {
   if (side === "back") {
     return (
       <div
-        className="w-full h-[200px] rounded-xl border shadow-md p-4 font-inter flex items-center justify-between"
+        className="w-full h-[200px] rounded-xl border shadow-md p-4 flex items-center justify-between"
         style={{ backgroundColor: secondary_color, color: primary_color, fontFamily: font_family }}
       >
         <div className="w-full h-full flex flex-col items-center justify-center">
@@ -73,7 +73,7 @@ const Template4 = (rawProps) => {
   /* -------------------- FRONT SIDE (Geometric Overlay) -------------------- */
   return (
     <div
-      className="relative w-full h-[200px] rounded-xl shadow-lg font-sans overflow-hidden transition-all duration-300 hover:shadow-xl"
+      className="relative w-full h-[200px] rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl"
       style={{ backgroundColor: secondary_color, color: primary_color, fontFamily: font_family }}
     >
       {/* Background Geometric Shape */}

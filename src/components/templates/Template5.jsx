@@ -151,7 +151,7 @@ const Template5 = (rawProps) => {
   if (side === "back") {
     return (
       <div
-        className="w-full h-[200px] rounded-xl border shadow-md p-4 font-inter flex items-center justify-between"
+        className="w-full h-[200px] rounded-xl border shadow-md p-4 flex items-center justify-between"
         style={{
           backgroundColor: secondary_color,
           color: primary_color,

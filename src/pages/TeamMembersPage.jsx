@@ -26,6 +26,7 @@ const templateMap = {
 };
 
 export default function TeamMembersPage() {
+  const API_URL=import.meta.env.VITE_API_URL || "http://localhost:5000";
   const { teamId } = useParams();
   const navigate = useNavigate();
 
@@ -73,7 +74,7 @@ export default function TeamMembersPage() {
       }
 
       try {
-        const res = await fetch(`http://localhost:5000/api/teamInfo/${teamId}/members`, {
+        const res = await fetch(`${API_URL}/api/teamInfo/${teamId}/members`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
@@ -106,7 +107,7 @@ export default function TeamMembersPage() {
       if (token?.toLowerCase().startsWith("bearer ")) token = token.slice(7);
 
       const res = await fetch(
-        `http://localhost:5000/api/teamInfo/member/${memberToDelete.id}`,
+        `${API_URL}/api/teamInfo/member/${memberToDelete.id}`,
         { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }
       );
       if (!res.ok) {
@@ -170,6 +171,7 @@ export default function TeamMembersPage() {
                     key={m.id}
                     card={m}
                     TemplateComponent={TemplateComponent}
+                    onEdit={(m) => navigate(`/edit/team/${m.team_id}/member/${m.id}`)}
                     onShare={() => openShareModal(m)}   // ✅ opens ShareModal with correct link
                     onDelete={() => setMemberToDelete(m)}
                     isSelectMode={false}

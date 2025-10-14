@@ -11,23 +11,31 @@ export default function Sidebar() {
   const [isMyCardsOpen, setIsMyCardsOpen] = useState(false);
   const [open, setOpen] = useState(false);
 
-  // Detect if we're in team edit mode
+  // Are we editing a TEAM member?
   const isTeamEdit = location.pathname.includes("/edit/team/");
-  const teamId = params.teamId;
-  const memberId = params.memberId;
+  const { teamId, memberId } = params;
+
+  // Which sub-tab is active?
+  const whichSub = (() => {
+    const p = location.pathname;
+    if (p.includes("/mylinks")) return "mylinks";
+    if (p.includes("/contact")) return "contact";
+    // default/fallback = about (virtual card)
+    return "about";
+  })();
 
   useEffect(() => {
-    const pathname = location.pathname;
-    if (pathname === "/" || pathname.startsWith("/edit")) {
+    const p = location.pathname;
+    if (p === "/" || p.startsWith("/edit")) {
       setActivePage("My Cards");
       setIsMyCardsOpen(true);
-    } else if (pathname.startsWith("/contacts")) {
+    } else if (p.startsWith("/contacts")) {
       setActivePage("Contacts");
       setIsMyCardsOpen(false);
-    } else if (pathname.startsWith("/support")) {
+    } else if (p.startsWith("/support")) {
       setActivePage("Support");
       setIsMyCardsOpen(false);
-    } else if (pathname.startsWith("/settings")) {
+    } else if (p.startsWith("/settings")) {
       setActivePage("Settings");
       setIsMyCardsOpen(false);
     }
@@ -38,7 +46,8 @@ export default function Sidebar() {
     setOpen(false);
   };
 
-  const openAboutEdit = () => {
+  // Route helpers that resolve to team or personal variants
+  const goAbout = () => {
     if (isTeamEdit && teamId && memberId) {
       navigate(`/edit/team/${teamId}/member/${memberId}/about`);
     } else {
@@ -52,7 +61,7 @@ export default function Sidebar() {
     setOpen(false);
   };
 
-  const openMyLinksEdit = () => {
+  const goMyLinks = () => {
     if (isTeamEdit && teamId && memberId) {
       navigate(`/edit/team/${teamId}/member/${memberId}/mylinks`);
     } else {
@@ -66,7 +75,7 @@ export default function Sidebar() {
     setOpen(false);
   };
 
-  const openContactEdit = () => {
+  const goContact = () => {
     if (isTeamEdit && teamId && memberId) {
       navigate(`/edit/team/${teamId}/member/${memberId}/contact`);
     } else {
@@ -80,48 +89,43 @@ export default function Sidebar() {
     setOpen(false);
   };
 
-  const myCardsSubMenu = [
-    { label: "Virtual Card", path: "/edit/about", onClick: openAboutEdit },
-    { label: "My Links", path: "/edit/mylinks", onClick: openMyLinksEdit },
-    { label: "Card Contact Side", path: "/edit/contact", onClick: openContactEdit },
-  ];
+  const SubButton = ({ label, keyName, onClick }) => {
+    const active = whichSub === keyName;
+    return (
+      <button
+        onClick={onClick}
+        className={`w-full text-left px-4 py-2 text-[#0b2447] transition-colors ${
+          active ? "bg-[#d4eafd] font-semibold" : "hover:bg-[#f2f7fd]"
+        }`}
+      >
+        {label}
+      </button>
+    );
+  };
 
-  const renderSubMenu = () => (
+  const SubMenu = () => (
     <div className="mt-2 ml-2 border border-[#c7def3] bg-white rounded-lg shadow-sm overflow-hidden">
-      {myCardsSubMenu.map((item) => (
-        <button
-          key={item.label}
-          onClick={item.onClick}
-          className={`w-full text-left px-4 py-2 text-[#0b2447] transition-colors ${
-            location.pathname.includes(item.path)
-              ? "bg-[#d4eafd] font-semibold"
-              : "hover:bg-[#f2f7fd]"
-          }`}
-        >
-          {item.label}
-        </button>
-      ))}
+      <SubButton label="Virtual Card" keyName="about" onClick={goAbout} />
+      <SubButton label="My Links" keyName="mylinks" onClick={goMyLinks} />
+      <SubButton label="Card Contact Side" keyName="contact" onClick={goContact} />
     </div>
   );
 
   return (
     <>
-      {/* Mobile: just a button */}
+      {/* Mobile toggle */}
       <div className="md:hidden p-4">
         <button
           onClick={() => setOpen((v) => !v)}
-          className=" px-4 py-3 rounded-lg bg-[#d4eafd] text-[#0b2447] font-semibold"
+          className="px-4 py-3 rounded-lg bg-[#d4eafd] text-[#0b2447] font-semibold"
         >
           {open ? "✕ Close Menu" : "☰"}
         </button>
       </div>
 
-      {/* Sidebar (modal for mobile) */}
+      {/* Mobile drawer */}
       {open && (
-        <div
-          className="fixed inset-x-0 top-24 bottom-0 z-[60]"
-          onClick={() => setOpen(false)}
-        >
+        <div className="fixed inset-x-0 top-24 bottom-0 z-[60]" onClick={() => setOpen(false)}>
           <div className="absolute inset-0 bg-black/30" />
           <aside
             className="absolute left-0 top-0 h-full w-64 bg-[#f0f8ff] p-4 shadow-lg z-50 overflow-y-auto"
@@ -133,17 +137,12 @@ export default function Sidebar() {
                   <>
                     <button
                       onClick={() => setIsMyCardsOpen((v) => !v)}
-                      className={`w-full text-left px-4 py-3 text-md rounded-lg flex items-center justify-between transition-all bg-white text-[#0b2447] font-semibold shadow`}
+                      className="w-full text-left px-4 py-3 text-md rounded-lg flex items-center justify-between transition-all bg-white text-[#0b2447] font-semibold shadow"
                     >
                       <span>My Cards</span>
-                      <ChevronDown
-                        size={20}
-                        className={`transition-transform ${
-                          isMyCardsOpen ? "rotate-180" : ""
-                        }`}
-                      />
+                      <ChevronDown size={20} className={`transition-transform ${isMyCardsOpen ? "rotate-180" : ""}`} />
                     </button>
-                    {isMyCardsOpen && renderSubMenu()}
+                    {isMyCardsOpen && <SubMenu />}
                   </>
                 ) : (
                   <button
@@ -177,7 +176,7 @@ export default function Sidebar() {
         </div>
       )}
 
-      {/* Sidebar (always visible on desktop) */}
+      {/* Desktop sidebar */}
       <aside className="hidden md:block w-full p-4 md:w-1/5 md:ml-6 mb-6 md:mb-0 bg-[#f0f8ff] flex flex-col items-center rounded-xl shadow-md h-fit">
         <ul className="w-full space-y-2">
           <li>
@@ -185,17 +184,12 @@ export default function Sidebar() {
               <>
                 <button
                   onClick={() => setIsMyCardsOpen((v) => !v)}
-                  className={`w-full text-left px-4 py-3 text-md rounded-lg flex items-center justify-between transition-all bg-white text-[#0b2447] font-semibold shadow`}
+                  className="w-full text-left px-4 py-3 text-md rounded-lg flex items-center justify-between transition-all bg-white text-[#0b2447] font-semibold shadow"
                 >
                   <span>My Cards</span>
-                  <ChevronDown
-                    size={20}
-                    className={`transition-transform ${
-                      isMyCardsOpen ? "rotate-180" : ""
-                    }`}
-                  />
+                  <ChevronDown size={20} className={`transition-transform ${isMyCardsOpen ? "rotate-180" : ""}`} />
                 </button>
-                {isMyCardsOpen && renderSubMenu()}
+                {isMyCardsOpen && <SubMenu />}
               </>
             ) : (
               <button
