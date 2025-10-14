@@ -26,17 +26,49 @@ const CardComponentById = {
   6: Template6,
 }
 
+// Put these near the top of EditContactSide.jsx
+const STACKS = {
+  modernSans: `"Inter", "Roboto", "Helvetica Neue", Arial, "Noto Sans", sans-serif`,
+  humanistSans: `"Segoe UI", "Calibri", Tahoma, Verdana, sans-serif`,
+  neoGrotesk: `"Helvetica Neue", Arial, "Nimbus Sans", "Noto Sans", sans-serif`,
+  geometricSans: `"Montserrat", "Avenir Next", "Futura", "Nunito", "Noto Sans", sans-serif`,
+  oldStyleSerif: `Georgia, "Times New Roman", Times, serif`,
+  didoneSerif: `"Playfair Display", "Didot", "Bodoni MT", "Times New Roman", serif`,
+  slabSerif: `"Roboto Slab", "Rockwell", "Egyptienne", Georgia, serif`,
+  displayNarrow: `Impact, Haettenschweiler, "Arial Narrow Bold", Arial, sans-serif`,
+};
+
 const FONT_OPTIONS = [
-  { label: "System (Inter/Sans)", value: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif` },
-  { label: "Neo Grotesk (Helvetica/Arial)", value: `"Helvetica Neue", Helvetica, Arial, "Noto Sans", sans-serif` },
-  { label: "Humanist (Segoe/Leelawadee)", value: `"Segoe UI", "Leelawadee UI", Tahoma, Arial, sans-serif` },
-  { label: "Rounded (Nunito-like)", value: `"Nunito", -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif` },
-  { label: "Compact (Tahoma)", value: `Tahoma, "Segoe UI", Arial, sans-serif` },
-  { label: "International (Noto Sans First)", value: `"Noto Sans", "Segoe UI", "Leelawadee UI", Tahoma, Arial, sans-serif` },
-  { label: "Old Style Serif (Garamond)", value: `Garamond, "Times New Roman", Times, serif` },
-  { label: "Mono (SFMono/Consolas)", value: `"SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace` },
-  { label: "Display (Impact/Haettenschweiler)", value: `Impact, Haettenschweiler, "Arial Narrow Bold", Arial, sans-serif` },
-]
+  { label: "Modern Sans (Inter/Roboto)", value: STACKS.modernSans },
+  { label: "Humanist Sans (Segoe/Calibri)", value: STACKS.humanistSans },
+  { label: "Neo-Grotesk (Helvetica Neue)", value: STACKS.neoGrotesk },
+  { label: "Geometric Sans (Montserrat/Nunito)", value: STACKS.geometricSans },
+  { label: "Old-Style Serif (Georgia/Times)", value: STACKS.oldStyleSerif },
+  { label: "Didone Serif (Playfair/Didot)", value: STACKS.didoneSerif },
+  { label: "Slab Serif (Roboto Slab/Rockwell)", value: STACKS.slabSerif },
+  { label: "Display Narrow (Impact)", value: STACKS.displayNarrow },
+];
+
+const DEFAULT_AVATAR =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(`
+<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'>
+  <rect fill='#f1f5f9' width='100%' height='100%'/>
+  <circle cx='150' cy='120' r='60' fill='#cbd5e1'/>
+  <rect x='75' y='200' width='150' height='60' rx='30' fill='#cbd5e1'/>
+  <text x='150' y='285' text-anchor='middle' font-size='14' fill='#94a3b8'>Add photo</text>
+</svg>
+`);
+
+const DEFAULT_LOGO =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(`
+<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'>
+  <rect fill='#f8fafc' width='100%' height='100%'/>
+  <rect x='75' y='90' width='150' height='120' rx='15' fill='#cbd5e1'/>
+  <text x='150' y='250' text-anchor='middle' font-size='14' fill='#94a3b8'>Add logo</text>
+</svg>
+`);
 
 export default function EditContactSide({ mode: propMode }) {
   const navigate = useNavigate()
@@ -45,6 +77,12 @@ export default function EditContactSide({ mode: propMode }) {
   // Use mode from props (passed via Route), fallback to detecting from params
   const mode = propMode || (params.teamId && params.memberId ? "team" : "personal")
   const cardId = params.cardId || params.memberId || localStorage.getItem("personal_card_id") || null
+
+  const tokenRaw = localStorage.getItem("token");
+  const token =
+    tokenRaw && !/^bearer /i.test(tokenRaw)
+      ? `Bearer ${tokenRaw.replace(/^"|"$/g, "")}`
+      : tokenRaw;
   
   console.log('EditContactSide params:', params, 'mode:', mode, 'cardId:', cardId)
 
@@ -77,6 +115,7 @@ export default function EditContactSide({ mode: propMode }) {
   const [logoFile, setLogoFile] = useState(null)
   const [removeProfile, setRemoveProfile] = useState(false)
   const [removeLogo, setRemoveLogo] = useState(false)
+  
 
   const [templateId, setTemplateId] = useState(1)
   const [showPhonePreview, setShowPhonePreview] = useState(false)
@@ -146,7 +185,7 @@ export default function EditContactSide({ mode: propMode }) {
       prevBlobUrls.current.forEach((u) => URL.revokeObjectURL(u))
       prevBlobUrls.current = []
     }
-  }, [mode, cardId, api.id])
+  }, [mode, cardId, api.id, token])
 
   // helpers
   const fileToDataUrl = (file) =>
@@ -215,21 +254,48 @@ export default function EditContactSide({ mode: propMode }) {
       setErr("")
       setOk("")
 
+      let cleanToken = tokenRaw;
+      if (cleanToken?.startsWith('"') && cleanToken?.endsWith('"'))
+        cleanToken = cleanToken.slice(1, -1);
+      if (cleanToken && !cleanToken.toLowerCase().startsWith("bearer "))
+        cleanToken = `Bearer ${cleanToken}`;
+
       // 1) Upload images first
-      const uploads = []
-      if (profileFile && api.uploadProfile) {
-        uploads.push(api.uploadProfile(profileFile))
+      const uploads = [];
+      if (profileFile) {
+        const fd = new FormData();
+        fd.append("profile", profileFile);
+        fd.append("cardId", cardId);
+        uploads.push(
+          fetch(`${API_BASE}/api/profile-photo`, {
+            method: "POST",
+            headers: { Authorization: cleanToken },
+            body: fd,
+          })
+        );
       }
-      if (logoFile && api.uploadLogo) {
-        uploads.push(api.uploadLogo(logoFile))
+      if (logoFile) {
+        const fd = new FormData();
+        fd.append("logo", logoFile);
+        fd.append("cardType", "Myself");
+        fd.append("cardId", cardId);
+        uploads.push(
+          fetch(`${API_BASE}/api/upload-logo`, {
+            method: "POST",
+            headers: { Authorization: cleanToken },
+            body: fd,
+          })
+        );
       }
 
       if (uploads.length) {
-        const results = await Promise.all(uploads)
-        const bad = results.find((r) => !r.ok)
+        const resArr = await Promise.all(uploads);
+        const bad = resArr.find((r) => !r.ok);
         if (bad) {
-          const j = await bad.json().catch(() => ({}))
-          throw new Error(j?.error || j?.message || `Upload failed (${bad.status})`)
+          const j = await bad.json().catch(() => ({}));
+          throw new Error(
+            j?.error || j?.message || `Upload failed (${bad.status})`
+          );
         }
       }
 
@@ -319,12 +385,26 @@ export default function EditContactSide({ mode: propMode }) {
     company_address: companyAddress,
     phoneNumber: phone,
     email,
-    profile_photo: removeProfile ? null : profileUrl,
+    profile_photo: removeProfile
+      ? DEFAULT_AVATAR
+      : profileUrl || DEFAULT_AVATAR,
     logo: removeLogo ? null : logoUrl,
     primary_color: primaryColor,
     secondary_color: secondaryColor,
+    primaryColor,
+    secondaryColor,
+
+    // font
     font_family: fontFamily,
     fontFamily,
+
+    // (optional sizes you already had)
+    sizeName: 22,
+    sizeTitle: 16,
+    sizeCompany: 15,
+    sizeEmail: 13,
+    sizePhone: 14,
+    sizeAddress: 12,
   }
 
   const phonePreviewProps = {
@@ -333,12 +413,26 @@ export default function EditContactSide({ mode: propMode }) {
     company: companyName || "Company",
     phone: phone || "Phone",
     email: email || "email@example.com",
-    avatar: removeProfile ? null : profileUrl,
+    avatar: removeProfile ? DEFAULT_AVATAR : profileUrl || DEFAULT_AVATAR,
     logo: removeLogo ? null : logoUrl,
   }
 
   // Team mode: colors are read-only from team card
   const colorsReadOnly = mode === "team"
+
+  const LiveCard = (props) => {
+    const Comp = CardComponent;
+
+    const liveLogo = removeLogo
+      ? DEFAULT_LOGO
+      : logoUrl || props.logo || props.logoUrl || DEFAULT_LOGO;
+
+    const liveProfile = removeProfile
+      ? DEFAULT_AVATAR
+      : profileUrl || props.profile_photo || DEFAULT_AVATAR;
+
+    return <Comp {...props} logo={liveLogo} profile_photo={liveProfile} />;
+  };
 
   return (
     <div className="min-h-screen font-inter bg-gradient-to-b from-[#F3F9FE] to-[#C5DBEC]">
@@ -371,7 +465,11 @@ export default function EditContactSide({ mode: propMode }) {
                     <UploadTile
                       title="Profile Photo"
                       shape="square"
-                      previewUrl={!removeProfile ? profileUrl : null}
+                      previewUrl={
+                        !removeProfile
+                          ? profileUrl || DEFAULT_AVATAR
+                          : DEFAULT_AVATAR
+                      }
                       onFileChange={onProfileChange}
                       helper="PNG/JPG up to 5MB"
                       buttonLabel="Upload"
@@ -380,37 +478,41 @@ export default function EditContactSide({ mode: propMode }) {
                       type="button"
                       className="mt-2 text-sm px-3 py-1.5 border rounded-lg hover:bg-[#f2f7fd]"
                       onClick={() => {
-                        setRemoveProfile(true)
-                        setProfileFile(null)
-                        setProfileUrl(null)
+                        setRemoveProfile(true);
+                        setProfileFile(null);
+                        setProfileUrl(null);
                       }}
                     >
                       Remove Profile Photo
                     </button>
                   </div>
+
+
                   
                   {!colorsReadOnly && (
                     <div>
-                      <UploadTile
-                        title="Company Logo"
-                        shape="square"
-                        previewUrl={!removeLogo ? logoUrl : null}
-                        onFileChange={onLogoChange}
-                        helper="Transparent PNG recommended"
-                        buttonLabel="Upload"
-                      />
-                      <button
-                        type="button"
-                        className="mt-2 text-sm px-3 py-1.5 border rounded-lg hover:bg-[#f2f7fd]"
-                        onClick={() => {
-                          setRemoveLogo(true)
-                          setLogoFile(null)
-                          setLogoUrl(null)
-                        }}
-                      >
-                        Remove Logo
-                      </button>
-                    </div>
+                    <UploadTile
+                      title="Company Logo"
+                      shape="square"
+                      previewUrl={
+                        !removeLogo ? logoUrl || DEFAULT_LOGO : DEFAULT_LOGO
+                      }
+                      onFileChange={onLogoChange}
+                      helper="Transparent PNG recommended"
+                      buttonLabel="Upload"
+                    />
+                    <button
+                      type="button"
+                      className="mt-2 text-sm px-3 py-1.5 border rounded-lg hover:bg-[#f2f7fd]"
+                      onClick={() => {
+                        setRemoveLogo(true);
+                        setLogoFile(null);
+                        setLogoUrl(null);
+                      }}
+                    >
+                      Remove Logo
+                    </button>
+                  </div>
                   )}
                 </div>
 
@@ -466,8 +568,10 @@ export default function EditContactSide({ mode: propMode }) {
                       value={fontFamily} 
                       onChange={(e)=>setFontFamily(e.target.value)}
                     >
-                      {FONT_OPTIONS.map((f)=>(
-                        <option key={f.label} value={f.value}>{f.label}</option>
+                      {FONT_OPTIONS.map((f) => (
+                        <option key={f.label} value={f.value}>
+                          {f.label}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -475,39 +579,37 @@ export default function EditContactSide({ mode: propMode }) {
               </div>
             </main>
 
-            <aside className="col-span-11 md:col-span-4 self-center justify-center">
-              <div className="md:sticky md:top-24 pr-2">
-                <div className="relative w-full max-w-sm mx-auto" style={{ perspective: "1000px" }}>
-                  <div className="text-sm text-center mb-2 text-[#0b2447] opacity-80">
-                    Click to switch to {showPhonePreview ? "Card View" : "Phone Preview"}
-                  </div>
+            <aside className="col-span-11 md:col-span-4">
+              {/* Fill the column height and center contents vertically + horizontally */}
+              <div className="pr-2 min-h-[520px] md:h-[calc(100vh-140px)] flex flex-col items-center justify-start pt-6">
 
+                <div className="w-full max-w-sm mx-auto">
                   <div
-                    className="relative w-full h-[520px] cursor-pointer transition-transform duration-700 ease-in-out"
-                    style={{ transformStyle: "preserve-3d", transform: showPhonePreview ? "rotateY(180deg)" : "rotateY(0deg)" }}
-                    onClick={() => setShowPhonePreview((prev) => !prev)}
+                    className="mx-auto w-[360px] h-[220px] rounded-xl overflow-hidden shadow relative bg-white"
+                    style={{ fontFamily }}
                   >
-                    <div className="absolute inset-0" style={{ backfaceVisibility: "hidden", transform: "rotateY(0deg)" }}>
-                      <div className="mx-auto w-[360px] h-[220px] rounded-xl overflow-hidden shadow relative bg-white" style={{ fontFamily }}>
-                        <CardComponent {...cardProps} side="front" style={{ width: "100%", height: "100%" }} />
-                      </div>
-                    </div>
-
-                    <div className="absolute inset-0" style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)", transformOrigin: "top center" }}>
-                      <div style={{ transform: "scale(0.95)", transformOrigin: "top center" }}>
-                        <PhonePreview {...phonePreviewProps} />
-                      </div>
-                    </div>
+                    <LiveCard
+                      {...cardProps}
+                      side="front"
+                      style={{ width: "100%", height: "100%" }}
+                    />
                   </div>
                 </div>
 
+                {/* chips stay just under the card */}
                 <div className="mt-3 flex items-center gap-3 justify-center">
                   <span className="inline-flex items-center gap-2 text-xs text-slate-600">
-                    <span className="inline-block w-4 h-4 rounded" style={{ background: primaryColor }} />
+                    <span
+                      className="inline-block w-4 h-4 rounded"
+                      style={{ background: primaryColor }}
+                    />
                     Primary
                   </span>
                   <span className="inline-flex items-center gap-2 text-xs text-slate-600">
-                    <span className="inline-block w-4 h-4 rounded border" style={{ background: secondaryColor }} />
+                    <span
+                      className="inline-block w-4 h-4 rounded border"
+                      style={{ background: secondaryColor }}
+                    />
                     Background
                   </span>
                 </div>

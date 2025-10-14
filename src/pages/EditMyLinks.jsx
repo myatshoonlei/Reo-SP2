@@ -27,6 +27,7 @@ const DEFAULT_STACK = `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "H
 
 export default function EditMyLinks({ mode = "personal" }) {
   const navigate = useNavigate();
+  const params = useParams()
   const { cardId: paramId } = useParams();
   const [cardId, setCardId] = useState(
     paramId || localStorage.getItem("personal_card_id") || null
@@ -110,7 +111,7 @@ export default function EditMyLinks({ mode = "personal" }) {
     };
 
      if (api?.id) load();
- }, [mode, api?.id]);
+ }, [mode, api?.id, token]);
 
   const saveAll = async () => {
     try {
@@ -147,8 +148,12 @@ export default function EditMyLinks({ mode = "personal" }) {
   
 
   const closeModal = () => {
-    navigate("/home");
-  };
+    if (mode === "team") {
+      navigate(`/teams/${params.teamId}`)
+    } else {
+      navigate("/home")
+    }
+  }
 
   if (loading) {
     return (
@@ -297,48 +302,17 @@ export default function EditMyLinks({ mode = "personal" }) {
               </div>
             </main>
 
-            {/* Right: preview */}
+            {/* Right: preview (Phone only, no flip) */}
             <aside className="col-span-11 md:col-span-4 self-center justify-center">
-            {/* keep it visible and start near the top of the page */}
-            <div className="md:sticky md:top-24 pr-2">
-              {/* perspective on parent */}
-              <div className="relative w-full max-w-sm mx-auto" style={{ perspective: "1000px" }}>
-                <div className="text-sm text-center mb-2 text-[#0b2447] opacity-80">
-                  Click to switch to {showPhonePreview ? "Card View" : "Phone Preview"}
-                </div>
-
-                {/* flip container */}
+              <div className="md:sticky md:top-24 pr-2">
                 <div
-                  className="relative w-full h-[520px] cursor-pointer transition-transform duration-700 ease-in-out"
-                  style={{
-                    transformStyle: "preserve-3d",
-                    transform: showPhonePreview ? "rotateY(180deg)" : "rotateY(0deg)",
-                  }}
-                  onClick={() => setShowPhonePreview((prev) => !prev)}
+                  className="relative w-full max-w-sm mx-auto"
+                  style={{ perspective: "1000px" }}
                 >
-                  {/* FRONT: Card view */}
-                  <div
-                    className="absolute inset-0"
-                    style={{ backfaceVisibility: "hidden", transform: "rotateY(0deg)" }}
-                  >
-                    <div className="mx-auto w-[360px] h-[220px] rounded-xl overflow-hidden shadow relative bg-white">
-                        <CardComponent
-                          {...previewProps}
-                          side="front"
-                          style={{ width: "100%", height: "100%" }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* BACK: phone */}
-                    <div
-                      className="absolute inset-0"
-                      style={{
-                        backfaceVisibility: "hidden",
-                        transform: "rotateY(180deg)",
-                        transformOrigin: "top center",
-                      }}
-                    >
+                  {/* Title removed since there's no switching */}
+                  <div className="relative w-full h-[520px]">
+                    {/* Static phone preview (no transform, no onClick) */}
+                    <div className="absolute inset-0">
                       <div
                         style={{
                           transform: "scale(0.95)",
@@ -353,8 +327,8 @@ export default function EditMyLinks({ mode = "personal" }) {
                           email={email || "email@example.com"}
                           avatar={profilePhoto}
                           logo={logo}
-                          website={website} // ⬅️ add
-                          github={github} // ⬅️ add
+                          website={website}
+                          github={github}
                           linkedin={linkedin}
                         />
                       </div>

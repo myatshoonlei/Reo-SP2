@@ -11,7 +11,7 @@ import { verifyEmail } from '../../utils/verifyEmail.js';
 const app = express();
 
 app.use(cors({
-  origin: ['http://localhost:5173', "https://tournaments-andrew-give-brain.trycloudflare.com"],
+  origin: ['http://localhost:5173', "https://rca-wiring-adds-unix.trycloudflare.com"],
   credentials: true
 }));
 app.use(express.json());

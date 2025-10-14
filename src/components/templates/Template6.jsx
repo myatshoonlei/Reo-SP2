@@ -1,3 +1,4 @@
+// Template6.jsx (Revised)
 import { getLogoSrc } from "../../utils/logoUtils";
 
 const Template6 = (rawProps) => {
@@ -7,7 +8,8 @@ const Template6 = (rawProps) => {
    const job_title = rawProps.job_title ?? rawProps.jobTitle ?? "Job Title";
    const company_name = rawProps.company_name ?? rawProps.companyName ?? "Company Name";
    const company_address = rawProps.company_address ?? rawProps.companyAddress ?? "";
- 
+   const FALLBACK_STACK = `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif`;
+
    // Handle colors with a cleanup utility
    const primary_color = cleanupColor(rawProps.primary_color ?? rawProps.primaryColor ?? "#0B2447");
    const secondary_color = cleanupColor(rawProps.secondary_color ?? rawProps.secondaryColor ?? "#576CBC");
@@ -34,8 +36,8 @@ const Template6 = (rawProps) => {
     // -------------- BACK SIDE (Consistent but adapted for dark mode) --------------
     return (
       <div
-        className="w-full h-[200px] rounded-xl border border-gray-700 shadow-md p-4 font-inter flex items-center justify-between"
-        style={{ backgroundColor: bgColor, color: accentColor }}
+      className="w-full h-[200px] rounded-xl border border-gray-700 shadow-md p-4 flex items-center justify-between"
+      style={{ backgroundColor: bgColor, color: accentColor, fontFamily: (rawProps.font_family ?? rawProps.fontFamily ?? FALLBACK_STACK) }}
       >
         <div className="w-full h-full flex flex-col items-center justify-center">
           {show.qr &&
@@ -67,9 +69,9 @@ const Template6 = (rawProps) => {
   // -------------- FRONT SIDE (Neo-Tech Grid) --------------
   return (
     <div
-      className="relative w-full h-[200px] rounded-xl shadow-lg font-sans text-white overflow-hidden transition-all duration-300 hover:shadow-2xl"
-      style={{ backgroundColor: bgColor }}
-    >
+   className="relative w-full h-[200px] rounded-xl shadow-lg text-white overflow-hidden transition-all duration-300 hover:shadow-2xl"
+   style={{ backgroundColor: bgColor, fontFamily: (rawProps.font_family ?? rawProps.fontFamily ?? FALLBACK_STACK) }}
+ >
       {/* Background Grid Pattern */}
       <div
         className="absolute inset-0 bg-repeat opacity-5"

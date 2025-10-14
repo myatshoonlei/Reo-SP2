@@ -1,3 +1,4 @@
+// src/components/templates/Template1.jsx
 import { useLayoutEffect, useRef, useState } from "react";
 import { getLogoSrc } from "../../utils/logoUtils";
 
