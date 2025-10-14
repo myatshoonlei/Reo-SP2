@@ -31,82 +31,72 @@ router.post("/", verifyToken, async (req, res) => {
 });
 
 // ✅ Update an existing team card
-// teamcard.js
 router.put("/:id", verifyToken, async (req, res) => {
-  console.log(`PUT /api/teamcard/${req.params.id}`, req.body);
-
   const { id } = req.params;
   const userId = req.user.id;
 
-  // optional fields you may send from FE
+  console.log(`PUT /api/teamcard/${id} by user ${userId}`);
+  console.log("Body keys:", Object.keys(req.body || {}));
+
   let {
     companyName,
-    template_id,         // <-- NEW
+    template_id,
     primaryColor,
     secondaryColor,
-    logo                  // data URL (optional)
+    logo,
+    font_family
   } = req.body || {};
 
-  // build dynamic SET clause
   const sets = [];
   const vals = [];
   let i = 1;
 
-  if (companyName != null) {
-    sets.push(`company_name = $${i++}`);
-    vals.push(companyName);
-  }
-  if (template_id != null) {
-    sets.push(`template_id = $${i++}::uuid`); // <-- cast
-    vals.push(String(template_id));           // ensure it's a string
-  }
-  if (primaryColor != null) {
-    sets.push(`primary_color = $${i++}`);
-    vals.push(primaryColor);
-  }
-  if (secondaryColor != null) {
-    sets.push(`secondary_color = $${i++}`);
-    vals.push(secondaryColor);
-  }
-  if (logo) {
+  if (companyName != null) { sets.push(`company_name = $${i++}`); vals.push(companyName); }
+  if (template_id != null) { sets.push(`template_id = $${i++}::int`); vals.push(Number(template_id)); }
+  if (primaryColor != null) { sets.push(`primary_color = $${i++}`); vals.push(primaryColor); }
+  if (secondaryColor != null) { sets.push(`secondary_color = $${i++}`); vals.push(secondaryColor); }
+  if (font_family != null) { sets.push(`font_family = $${i++}`); vals.push(font_family); }
+
+  if (logo === null) {
+    sets.push(`logo = NULL`);
+  } else if (typeof logo === "string" && logo.startsWith("data:")) {
+    const base64 = logo.split(",")[1];
     try {
-      const base64 = logo.split(",")[1];
       const buf = Buffer.from(base64, "base64");
       sets.push(`logo = $${i++}`);
       vals.push(buf);
-    } catch (e) {
+    } catch {
       return res.status(400).json({ error: "Invalid logo data URL" });
     }
   }
 
-  // always bump the timestamp
   sets.push(`updated_at = NOW()`);
 
-  if (sets.length === 0) {
-    return res.status(400).json({ error: "No updatable fields supplied" });
-  }
+  if (!sets.length) return res.status(400).json({ error: "No updatable fields supplied" });
 
+  const teamIdParam = i++;
+  const userIdParam = i++;
   vals.push(id, userId);
 
+  const q = `
+    UPDATE team_cards
+       SET ${sets.join(", ")}
+     WHERE teamid = $${teamIdParam}::int AND userid = $${userIdParam}
+     RETURNING *`;
+
+  console.log("Executing query:", q);
+  console.log("With values:", vals);
+
   try {
-    const q = `
-      UPDATE team_cards
-      SET ${sets.join(", ")}
-      WHERE teamid = $${i++} AND userid = $${i}
-      RETURNING *`;
     const r = await pool.query(q, vals);
-
-    if (!r.rows.length) {
-      return res.status(404).json({ error: "Team card not found or unauthorized" });
-    }
-
-    res.json({ message: "Team card updated successfully", data: r.rows[0] });
+    console.log("Rows updated:", r.rowCount);
+    if (!r.rows.length) return res.status(404).json({ error: "Team card not found or unauthorized" });
+    return res.json({ message: "Team card updated successfully", data: r.rows[0] });
   } catch (err) {
-    console.error("update team card error:", err.stack || err);
-    return res.status(500).json({ error: err.message });
-  }  
+    console.error("update team card error:", err.code, err.message, err.detail || "");
+    return res.status(500).json({ error: "Server error" });
+  }
 });
-
 
 // teamcard.js
 router.get("/:id/details", verifyToken, async (req, res) => {
@@ -115,7 +105,7 @@ router.get("/:id/details", verifyToken, async (req, res) => {
 
   try {
     const q = `
-      SELECT teamid, userid, company_name, primary_color, secondary_color, logo, template_id
+      SELECT teamid, userid, company_name, primary_color, secondary_color, font_family, logo, template_id
       FROM team_cards
       WHERE teamid = $1 AND userid = $2
       LIMIT 1`;
