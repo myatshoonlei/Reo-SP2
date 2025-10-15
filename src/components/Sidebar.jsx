@@ -11,20 +11,16 @@ export default function Sidebar() {
   const [isMyCardsOpen, setIsMyCardsOpen] = useState(false);
   const [open, setOpen] = useState(false);
 
-  // team edit detection
+  // Are we editing a TEAM member?
   const isTeamEdit = location.pathname.includes("/edit/team/");
   const { teamId, memberId } = params;
-
-  // contactOnly mode if we arrived from TeamFolder edit
-  const contactOnly =
-    isTeamEdit && (location.state?.contactOnly ||
-      new URLSearchParams(location.search).get("contactOnly") === "1");
 
   // Which sub-tab is active?
   const whichSub = (() => {
     const p = location.pathname;
     if (p.includes("/mylinks")) return "mylinks";
     if (p.includes("/contact")) return "contact";
+    // default/fallback = about (virtual card)
     return "about";
   })();
 
@@ -81,12 +77,14 @@ export default function Sidebar() {
 
   const goContact = () => {
     if (isTeamEdit && teamId && memberId) {
-      // allowed in team when contactOnly (or deep-link)
       navigate(`/edit/team/${teamId}/member/${memberId}/contact`);
     } else {
       const cardId = localStorage.getItem("personal_card_id");
       if (cardId) navigate(`/edit/contact/${cardId}`);
-      else { alert("Please create a card first!"); navigate("/"); }
+      else {
+        alert("Please create a card first!");
+        navigate("/");
+      }
     }
     setOpen(false);
   };
@@ -109,9 +107,7 @@ export default function Sidebar() {
     <div className="mt-2 ml-2 border border-[#c7def3] bg-white rounded-lg shadow-sm overflow-hidden">
       <SubButton label="Virtual Card" keyName="about" onClick={goAbout} />
       <SubButton label="My Links" keyName="mylinks" onClick={goMyLinks} />
-      {!isTeamEdit && (
-        <SubButton label="Card Contact Side" keyName="contact" onClick={goContact} />
-      )}
+      <SubButton label="Card Contact Side" keyName="contact" onClick={goContact} />
     </div>
   );
 
@@ -126,7 +122,7 @@ export default function Sidebar() {
           {open ? "✕ Close Menu" : "☰"}
         </button>
       </div>
-  
+
       {/* Mobile drawer */}
       {open && (
         <div className="fixed inset-x-0 top-24 bottom-0 z-[60]" onClick={() => setOpen(false)}>
@@ -146,21 +142,7 @@ export default function Sidebar() {
                       <span>My Cards</span>
                       <ChevronDown size={20} className={`transition-transform ${isMyCardsOpen ? "rotate-180" : ""}`} />
                     </button>
-                    {isMyCardsOpen && (
-                      <div className="mt-2 ml-2 border border-[#c7def3] bg-white rounded-lg shadow-sm overflow-hidden">
-                        {contactOnly ? (
-                          <SubButton label="Card Contact Side" keyName="contact" onClick={goContact} />
-                        ) : (
-                          <>
-                            <SubButton label="Virtual Card" keyName="about" onClick={goAbout} />
-                            <SubButton label="My Links" keyName="mylinks" onClick={goMyLinks} />
-                            {!isTeamEdit && (
-                              <SubButton label="Card Contact Side" keyName="contact" onClick={goContact} />
-                            )}
-                          </>
-                        )}
-                      </div>
-                    )}
+                    {isMyCardsOpen && <SubMenu />}
                   </>
                 ) : (
                   <button
@@ -193,7 +175,7 @@ export default function Sidebar() {
           </aside>
         </div>
       )}
-  
+
       {/* Desktop sidebar */}
       <aside className="hidden md:block w-full p-4 md:w-1/5 md:ml-6 mb-6 md:mb-0 bg-[#f0f8ff] flex flex-col items-center rounded-xl shadow-md h-fit">
         <ul className="w-full space-y-2">
@@ -207,21 +189,7 @@ export default function Sidebar() {
                   <span>My Cards</span>
                   <ChevronDown size={20} className={`transition-transform ${isMyCardsOpen ? "rotate-180" : ""}`} />
                 </button>
-                {isMyCardsOpen && (
-                  <div className="mt-2 ml-2 border border-[#c7def3] bg-white rounded-lg shadow-sm overflow-hidden">
-                    {contactOnly ? (
-                      <SubButton label="Card Contact Side" keyName="contact" onClick={goContact} />
-                    ) : (
-                      <>
-                        <SubButton label="Virtual Card" keyName="about" onClick={goAbout} />
-                        <SubButton label="My Links" keyName="mylinks" onClick={goMyLinks} />
-                        {!isTeamEdit && (
-                          <SubButton label="Card Contact Side" keyName="contact" onClick={goContact} />
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
+                {isMyCardsOpen && <SubMenu />}
               </>
             ) : (
               <button
@@ -254,4 +222,4 @@ export default function Sidebar() {
       </aside>
     </>
   );
-}  
+}

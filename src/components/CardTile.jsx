@@ -35,16 +35,7 @@ const CardTile = React.forwardRef(({ card, TemplateComponent, onEdit, onShare, o
       ref={ref}
       onClick={handleTileClick}
     >
-      <div style={{ fontFamily: card.font_family || card.fontFamily }}>
-        <TemplateComponent
-          {...card}
-          // make sure templates see both snake & camel just in case
-          primary_color={card.primary_color || card.primaryColor}
-          secondary_color={card.secondary_color || card.secondaryColor}
-          font_family={card.font_family || card.fontFamily}
-          logo={getLogoSrc(card.logo)}
-        />
-      </div>
+      <TemplateComponent {...card} logo={getLogoSrc(card.logo)} />
 
       {/* --- UI for Select Mode --- */}
       {isSelectMode && (

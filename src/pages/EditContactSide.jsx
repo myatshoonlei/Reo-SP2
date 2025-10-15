@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import Cropper from "react-easy-crop"
 import getCroppedImg from "../server/utils/cropImage.js";
-import useEditApi, { useAuthHeader } from "../hooks/useEditApi"
+import useEditApi from "../hooks/useEditApi"
 
 import Navbar from "../components/Navbar"
 import Sidebar from "../components/Sidebar"
@@ -16,7 +16,6 @@ import Template3 from "../components/templates/Template3"
 import Template4 from "../components/templates/Template4"
 import Template5 from "../components/templates/Template5"
 import Template6 from "../components/templates/Template6"
-import TemplateVmes from "../components/templates/TemplateVmes"
 
 const CardComponentById = {
   1: Template1,
@@ -25,10 +24,7 @@ const CardComponentById = {
   4: Template4,
   5: Template5,
   6: Template6,
-  7: TemplateVmes,
 }
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 // Put these near the top of EditContactSide.jsx
 const STACKS = {
@@ -77,14 +73,10 @@ const DEFAULT_LOGO =
 export default function EditContactSide({ mode: propMode }) {
   const navigate = useNavigate()
   const params = useParams()
-  const authHeaders = useAuthHeader();
   
   // Use mode from props (passed via Route), fallback to detecting from params
-  const mode = propMode || (params.teamId ? "team" : "personal")
-  const isTeam = /^team/i.test(mode)
+  const mode = propMode || (params.teamId && params.memberId ? "team" : "personal")
   const cardId = params.cardId || params.memberId || localStorage.getItem("personal_card_id") || null
-  const api = useEditApi(mode)
-  const teamIdForApi = api?.context?.teamId || params.teamId || null;
 
   const tokenRaw = localStorage.getItem("token");
   const token =
@@ -139,16 +131,16 @@ export default function EditContactSide({ mode: propMode }) {
   const prevBlobUrls = useRef([])
   const rememberBlob = (url) => url?.startsWith("blob:") && prevBlobUrls.current.push(url)
 
-
-  console.log("EditContactSide mode:", mode, {
-    paramsTeamId: params.teamId,
-    apiTeamId: api?.context?.teamId,
-    memberId: api?.id
-  });  
+  const api = useEditApi(mode)
 
   useEffect(() => {
     const load = async () => {
-      const hasId = mode === "personal" ? cardId : true; // allow team mode without memberId
+      const hasId = mode === "personal" ? cardId : api.id
+      if (!hasId) {
+        setErr("No card selected")
+        setLoading(false)
+        return
+      }
       
       try {
         setLoading(true)
@@ -169,18 +161,8 @@ export default function EditContactSide({ mode: propMode }) {
         setSecondaryColor(d.secondary_color ?? d.secondaryColor ?? "#f5f9ff")
         setFontFamily(d.font_family ?? d.fontFamily ?? FONT_OPTIONS[0].value)
         
-        let tId = Number(d.template_id ?? d.templateId)
-        if (!Number.isFinite(tId)) {
-          const key = String(d.component_key || "").toLowerCase()
-          // map common keys to ids
-          const keyToId = {
-            template1: 1, template2: 2, template3: 3,
-            template4: 4, template5: 5, template6: 6,
-            templatevmes: 7,
-          }
-          tId = keyToId[key]
-        }
-        setTemplateId([1,2,3,4,5,6,7].includes(tId) ? tId : 1)
+        const tId = Number(d.template_id ?? d.templateId)
+        setTemplateId([1,2,3,4,5,6].includes(tId) ? tId : 1)
 
         // Images
         const logoB64 = d.logo || d.logoBase64
@@ -280,34 +262,30 @@ export default function EditContactSide({ mode: propMode }) {
 
       // 1) Upload images first
       const uploads = [];
-
       if (profileFile) {
-        if (isTeam) {
-          const fd = new FormData();
-          fd.append("profile", profileFile);
-          uploads.push(api.uploadProfile(profileFile));
-        } else {
-          const fd = new FormData();
-          fd.append("profile", profileFile);
-          fd.append("cardId", cardId);
-          uploads.push(
-            fetch(`${API_URL}/api/profile-photo`, {
-              method: "POST",
-              headers: { Authorization: cleanToken },
-              body: fd,
-            })
-          );
-        }
+        const fd = new FormData();
+        fd.append("profile", profileFile);
+        fd.append("cardId", cardId);
+        uploads.push(
+          fetch(`${API_BASE}/api/profile-photo`, {
+            method: "POST",
+            headers: { Authorization: cleanToken },
+            body: fd,
+          })
+        );
       }
-
-      // Logo upload
-      let logoDataUrl = null;
-      if (isTeam && logoFile) {
-        logoDataUrl = await fileToDataUrl(logoFile);    // team uses data URL in styling PUT
-      }
-      if (mode === "personal" && logoFile) {
-        // use existing personal upload endpoint
-        uploads.push(api.uploadLogo(logoFile));
+      if (logoFile) {
+        const fd = new FormData();
+        fd.append("logo", logoFile);
+        fd.append("cardType", "Myself");
+        fd.append("cardId", cardId);
+        uploads.push(
+          fetch(`${API_BASE}/api/upload-logo`, {
+            method: "POST",
+            headers: { Authorization: cleanToken },
+            body: fd,
+          })
+        );
       }
 
       if (uploads.length) {
@@ -332,60 +310,27 @@ export default function EditContactSide({ mode: propMode }) {
         clearProfile: removeProfile,
       }
 
-      const memberRes = await api.save(memberPayload);
+      const memberRes = await api.save(memberPayload)
       if (!memberRes.ok) {
-        const txt = await memberRes.text().catch(() => "");
-        throw new Error(txt || `Failed to save member data (${memberRes.status})`);
+        const txt = await memberRes.text().catch(() => "")
+        throw new Error(txt || "Failed to save member data")
       }
 
-      // inside saveAll(), in the "if (mode === 'team')" branch, right before fetch
-      console.log("[TEAM] teamIdForApi =", teamIdForApi);
-      console.log("[TEAM] headers =", { "Content-Type": "application/json", ...authHeaders });
-      console.log("[TEAM] payload =", {
-        primaryColor, secondaryColor, font_family: fontFamily,
-        ...(removeLogo ? { logo: null } : (logoDataUrl ? { logo: logoDataUrl.slice(0,60) + "..." } : {})),
-      });
-
-      if (isTeam) {
-        if (!teamIdForApi) {
-          throw new Error("No teamId available for team styling update");
-        }
-      
+      // 3) If team mode, save colors separately to team_cards
+      if (mode === "team" && api.saveTeamStyling) {
         const stylingPayload = {
           primaryColor,
           secondaryColor,
-          font_family: fontFamily,
-          ...(removeLogo ? { logo: null } : (logoDataUrl ? { logo: logoDataUrl } : {})),
-        };
-      
-        console.log("TEAM PUT url:", `${API_URL}/api/teamcard/${teamIdForApi}`);
-        console.log("TEAM PUT payload:", stylingPayload);
-      
-        const res = await fetch(`${API_URL}/api/teamcard/${teamIdForApi}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json", ...authHeaders },
-          body: JSON.stringify(stylingPayload),
-        });
-      
-        const txt = await res.text().catch(() => "");
-        console.log("TEAM PUT status:", res.status, "body:", txt);
-      
-        if (!res.ok) throw new Error(txt || `Failed to save team styling (${res.status})`);
-      } else {
-        const res = await fetch(`${API_URL}/api/personal-card/${cardId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json", ...authHeaders },
-          body: JSON.stringify({
-            primaryColor,
-            secondaryColor,
-            font_family: fontFamily,
-            ...(removeLogo ? { logo: null } : {}),
-          }),
-        });
-        const txt = await res.text().catch(() => "");
-        if (!res.ok) throw new Error(txt || `Failed to save personal appearance (${res.status})`);
+          ...(removeLogo ? { logo: null } : {}),
+        }
+
+        const stylingRes = await api.saveTeamStyling(stylingPayload)
+        if (!stylingRes.ok) {
+          const txt = await stylingRes.text().catch(() => "")
+          throw new Error(txt || "Failed to save team styling")
+        }
       }
-      
+
       setOk("Saved!")
       setTimeout(() => setOk(""), 1200)
       setProfileFile(null)
@@ -410,7 +355,7 @@ export default function EditContactSide({ mode: propMode }) {
   // Navigation helpers
   const goToVirtualCard = () => {
     if (mode === "team") {
-      navigate(`/edit/team/${params.teamId}/member/${api.id}/about`)
+      navigate(`/edit/team/${params.teamId}/member/${params.memberId}/about`)
     } else {
       navigate(`/edit/about/${cardId}`)
     }
@@ -473,7 +418,7 @@ export default function EditContactSide({ mode: propMode }) {
   }
 
   // Team mode: colors are read-only from team card
-  const colorsReadOnly = false
+  const colorsReadOnly = mode === "team"
 
   const LiveCard = (props) => {
     const Comp = CardComponent;
@@ -516,35 +461,36 @@ export default function EditContactSide({ mode: propMode }) {
                 </div>
 
                 <div className="p-4 border-b grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {!isTeam && (
-                    <div>
-                      <UploadTile
-                        title="Profile Photo"
-                        shape="square"
-                        previewUrl={
-                          !removeProfile
-                            ? profileUrl || DEFAULT_AVATAR
-                            : DEFAULT_AVATAR
-                        }
-                        onFileChange={onProfileChange}
-                        helper="PNG/JPG up to 5MB"
-                        buttonLabel="Upload"
-                      />
-                      <button
-                        type="button"
-                        className="mt-2 text-sm px-3 py-1.5 border rounded-lg hover:bg-[#f2f7fd]"
-                        onClick={() => {
-                          setRemoveProfile(true);
-                          setProfileFile(null);
-                          setProfileUrl(null);
-                        }}
-                      >
-                        Remove Profile Photo
-                      </button>
-                    </div>
-                )}
-                {/* <div className={mode === "team" ? "sm:col-span-2" : ""}></div> */}
                   <div>
+                    <UploadTile
+                      title="Profile Photo"
+                      shape="square"
+                      previewUrl={
+                        !removeProfile
+                          ? profileUrl || DEFAULT_AVATAR
+                          : DEFAULT_AVATAR
+                      }
+                      onFileChange={onProfileChange}
+                      helper="PNG/JPG up to 5MB"
+                      buttonLabel="Upload"
+                    />
+                    <button
+                      type="button"
+                      className="mt-2 text-sm px-3 py-1.5 border rounded-lg hover:bg-[#f2f7fd]"
+                      onClick={() => {
+                        setRemoveProfile(true);
+                        setProfileFile(null);
+                        setProfileUrl(null);
+                      }}
+                    >
+                      Remove Profile Photo
+                    </button>
+                  </div>
+
+
+                  
+                  {!colorsReadOnly && (
+                    <div>
                     <UploadTile
                       title="Company Logo"
                       shape="square"
@@ -567,12 +513,13 @@ export default function EditContactSide({ mode: propMode }) {
                       Remove Logo
                     </button>
                   </div>
+                  )}
                 </div>
 
                 <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm text-[#0b2447]">
-                      Primary Color
+                      Primary Color {colorsReadOnly && <span className="text-xs text-slate-400">(Team-wide)</span>}
                     </label>
                     <div className="mt-1 flex items-center gap-3">
                       <input 
@@ -580,19 +527,21 @@ export default function EditContactSide({ mode: propMode }) {
                         value={primaryColor} 
                         onChange={(e)=>setPrimaryColor(e.target.value)} 
                         className="h-10 w-14 p-0 border rounded" 
+                        disabled={colorsReadOnly}
                       />
                       <input 
                         type="text" 
                         value={primaryColor} 
                         onChange={(e)=>setPrimaryColor(e.target.value)} 
                         className="flex-1 border rounded-lg px-3 py-2 disabled:bg-gray-50 disabled:text-gray-500" 
+                        disabled={colorsReadOnly}
                       />
                     </div>
                   </div>
 
                   <div>
                     <label className="text-sm text-[#0b2447]">
-                      Background Color
+                      Background Color {colorsReadOnly && <span className="text-xs text-slate-400">(Team-wide)</span>}
                     </label>
                     <div className="mt-1 flex items-center gap-3">
                       <input 

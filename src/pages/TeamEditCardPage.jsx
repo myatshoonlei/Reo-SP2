@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";  // You can reuse the Navbar component
 import Sidebar from "../components/Sidebar";  // You can reuse the Sidebar component
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5050";
 
 export default function TeamEditCardPage() {
   const token = localStorage.getItem("token");

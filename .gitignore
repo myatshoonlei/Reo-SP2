@@ -5,8 +5,6 @@ build/
 .out/
 .env
 .env.*
-.env.development.local
-.env.production
 npm-debug.log*
 yarn-error.log*
 .vscode/

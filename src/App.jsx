@@ -84,8 +84,7 @@ function AppContent() {
           {/* ✅ TEAM MEMBER EDIT ROUTES */}
           <Route path="/edit/team/:teamId/member/:memberId" element={<EditCardPage mode="team" />} />
           <Route path="/edit/team/:teamId/member/:memberId/about" element={<EditCardPage mode="team" />} />
-          {/* ✅ TEAM-LEVEL STYLING ROUTE (no specific member) */}
-          <Route path="/edit/team/:teamId/contact" element={<EditContactSide mode="team-styling" />} />
+          <Route path="/edit/team/:teamId/member/:memberId/contact" element={<EditContactSide mode="team" />} />
           <Route path="/edit/team/:teamId/member/:memberId/mylinks" element={<EditMyLinks mode="team" />} />
           
           {/* Modal Routes - but they render over home */}

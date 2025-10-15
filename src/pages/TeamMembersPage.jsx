@@ -66,74 +66,27 @@ export default function TeamMembersPage() {
       let token = localStorage.getItem("token");
       if (token?.startsWith('"') && token?.endsWith('"')) token = token.slice(1, -1);
       if (token?.toLowerCase().startsWith("bearer ")) token = token.slice(7);
-  
+
       if (!token) {
         setMembers([]);
         setLoading(false);
         return;
       }
-  
+
       try {
-        // fetch members + teamcard styling in parallel
-        const [membersRes, teamRes] = await Promise.all([
-          fetch(`${API_URL}/api/teamInfo/${teamId}/members`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch(`${API_URL}/api/teamcard/${teamId}/details`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
-  
-        if (!membersRes.ok) throw new Error(`Members fetch failed: ${membersRes.status}`);
-        if (!teamRes.ok) throw new Error(`Team styling fetch failed: ${teamRes.status}`);
-  
-        const membersJson = await membersRes.json();
-        const teamJson = await teamRes.json();
-        const team = teamJson?.data || {};
-  
-        // normalize team logo (DB returns base64 without prefix)
-        const teamLogo = team.logo
-          ? (String(team.logo).startsWith("data:")
-              ? team.logo
-              : `data:image/png;base64,${team.logo}`)
-          : null;
-  
-        // one place to hold the team-wide styling that templates read
-        const sharedStyling = {
-          primary_color: team.primary_color,
-          secondary_color: team.secondary_color,
-          font_family: team.font_family,
-          template_id: team.template_id,
-          company_name: team.company_name,
-          // let member-specific logo override if they have one;
-          // otherwise fall back to team logo:
-          _team_logo_fallback: teamLogo,
-        };
-  
-        const normalized = (membersJson?.data || []).map((row) => {
-          // row.logo may be null/Buffer->base64. Make it displayable.
-          const memberLogo = row.logo
-            ? getLogoSrc(row.logo)
-            : sharedStyling._team_logo_fallback;
-  
-          // Prefer member field when present; otherwise inject team styling.
-          return {
-            ...row,
-            logo: memberLogo,
-            primary_color: row.primary_color ?? sharedStyling.primary_color,
-            secondary_color: row.secondary_color ?? sharedStyling.secondary_color,
-            font_family: row.font_family ?? sharedStyling.font_family,
-            template_id: row.template_id ?? sharedStyling.template_id,
-            company_name: row.company_name ?? sharedStyling.company_name,
-            // for your Template switch:
-            component_key:
-              row.component_key ||
-              (sharedStyling.template_id ? `template${sharedStyling.template_id}` : "template1"),
-          };
+        const res = await fetch(`${API_URL}/api/teamInfo/${teamId}/members`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
-  
+        if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+        const json = await res.json();
+
+        const normalized = (json?.data || []).map((row) => ({
+          ...row,
+          logo: getLogoSrc(row.logo),
+        }));
+
         setMembers(normalized);
-        setTeamName(normalized[0]?.team_company_name || sharedStyling.company_name || "");
+        setTeamName(normalized[0]?.team_company_name || "");
       } catch (e) {
         console.error(e);
         setMembers([]);
@@ -141,10 +94,9 @@ export default function TeamMembersPage() {
         setLoading(false);
       }
     };
-  
+
     fetchMembers();
   }, [teamId]);
-  
 
   async function confirmMemberDelete() {
     if (!memberToDelete) return;
