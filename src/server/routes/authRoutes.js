@@ -12,6 +12,7 @@ const app = express();
 
 app.use(cors({
   origin: ['http://localhost:5173', 'https://reo-testing.vercel.app', 'https://rca-wiring-adds-unix.trycloudflare.com'],
+
   credentials: true
 }));
 app.use(express.json());
