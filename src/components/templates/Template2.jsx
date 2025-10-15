@@ -1,6 +1,6 @@
 // src/components/templates/Template2.jsx
 import { useLayoutEffect, useRef, useState } from "react";
-import { getLogoSrc } from "../../utils/logoUtils";
+import { getLogoSrc } from "../../server/utils/logoUtils";
 
 const FALLBACK_STACK =
   `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif`;

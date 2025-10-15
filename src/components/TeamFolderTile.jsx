@@ -1,6 +1,6 @@
 // TeamFolderTile.jsx
 import { Pencil, Share2, Trash2 } from "lucide-react";
-import { getLogoSrc } from "../utils/logoUtils";
+import { getLogoSrc } from "../server/utils/logoUtils";
 
 // Pastel fallback if DB colors are missing
 function deriveColors(name = "") {

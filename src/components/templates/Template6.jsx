@@ -1,5 +1,5 @@
 // Template6.jsx (Revised)
-import { getLogoSrc } from "../../utils/logoUtils";
+import { getLogoSrc } from "../../server/utils/logoUtils";
 
 const Template6 = (rawProps) => {
  const fullname = rawProps.fullname ?? rawProps.fullName ?? "Your Name";

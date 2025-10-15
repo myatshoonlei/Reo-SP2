@@ -16,6 +16,7 @@ const PrimaryColorModal = ({ onClose, onBack, onNext }) => {
   const [showPicker, setShowPicker] = useState(false);
   const [customColor, setCustomColor] = useState(persistedPrimaryCustomColor);
   const [selectedColor, setSelectedColor] = useState(persistedPrimaryColor);
+  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
   // after hooks
 const getEffectiveCardId = () => {
@@ -80,7 +81,7 @@ const effectiveTeamId = getEffectiveTeamId();
       // 5) Backend fallback
       if (!dataUrl) {
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:5000/api/logo", {
+        const res = await fetch(`${API_BASE}/api/logo`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
@@ -172,7 +173,7 @@ const handleNext = async () => {
      teamId: cardType === "Team" ? effectiveTeamId : undefined,
    };
 
-   const res = await fetch("http://localhost:5000/api/save-color", {
+   const res = await fetch(`${API_BASE}/api/save-color`, {
        method: "POST",
        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
        body: JSON.stringify(payload),

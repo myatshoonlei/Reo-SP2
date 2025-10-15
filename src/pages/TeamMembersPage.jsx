@@ -13,7 +13,7 @@ import Template5 from "../components/templates/Template5";
 import Template6 from "../components/templates/Template6";
 import TemplateVmes from "../components/templates/TemplateVmes";
 
-import { getLogoSrc } from "../utils/logoUtils";
+import { getLogoSrc } from "../server/utils/logoUtils";
 
 const templateMap = {
   template1: Template1,

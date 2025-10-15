@@ -1,6 +1,6 @@
 // routes/verifyEmailRoute.js
 import express from 'express';
-import { verifyEmail } from '../../utils/verifyEmail.js';
+import { verifyEmail } from '../utils/verifyEmail.js';
 
 const router = express.Router();
 

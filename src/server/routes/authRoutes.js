@@ -5,13 +5,13 @@ import jwt from 'jsonwebtoken';
 import pool from '../db.js';
 import dotenv from 'dotenv';
 import sgMail from '@sendgrid/mail';
-import sendVerificationEmail from '../../utils/sendVerificationEmail.js';
-import { verifyEmail } from '../../utils/verifyEmail.js';
+import sendVerificationEmail from '../utils/sendVerificationEmail.js';
+import { verifyEmail } from '../utils/verifyEmail.js';
 
 const app = express();
 
 app.use(cors({
-  origin: ['http://localhost:5173', "https://rca-wiring-adds-unix.trycloudflare.com"],
+  origin: ['http://localhost:5173', 'https://reo-testing.vercel.app', 'https://rca-wiring-adds-unix.trycloudflare.com'],
   credentials: true
 }));
 app.use(express.json());

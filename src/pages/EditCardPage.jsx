@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Cropper from "react-easy-crop";
-import getCroppedImg from "../utils/cropImage";
+import getCroppedImg from "../server/utils/cropImage.js";
+
 import PhonePreview from "../components/PhonePreview";
 import UploadTile from "../components/UploadTile";
 import Template1 from "../components/templates/Template1";

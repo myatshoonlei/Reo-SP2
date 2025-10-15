@@ -1,4 +1,4 @@
-import { getLogoSrc } from "../../utils/logoUtils";
+import { getLogoSrc } from "../../server/utils/logoUtils";
 
 // Function to clean up color strings
 function cleanupColor(color) {

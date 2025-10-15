@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Cropper from "react-easy-crop";
-import getCroppedImg from "../utils/cropImage";
+import getCroppedImg from "../server/utils/cropImage.js";
+
 
 const CompanyLogoModal = ({croppedLogo, setCroppedLogo}) => {
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";

@@ -9,6 +9,7 @@ const uploadKey = (teamId) => `team_upload:${teamId}`;
 export default function UploadInfoModal() {
   const navigate = useNavigate();
   const location = useLocation();
+  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
   const {
     cardType,
@@ -136,7 +137,7 @@ export default function UploadInfoModal() {
 
         const token = localStorage.getItem("token");
         await axios.post(
-          "http://localhost:5000/api/teamInfo",
+          `${API_BASE}/api/teamInfo`,
           { teamId: effectiveTeamId, members: cleaned },
           { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
         );

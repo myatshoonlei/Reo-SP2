@@ -1,4 +1,4 @@
-import { getLogoSrc } from "../../utils/logoUtils";
+import { getLogoSrc } from "../../server/utils/logoUtils";
 
 const TemplateVmes = (rawProps) => {
   const fullname = rawProps.fullname ?? rawProps.fullName ?? "FULL NAME";

@@ -10,8 +10,8 @@ import Template5 from "./templates/Template5"
 import Template6 from "./templates/Template6"
 // import TemplateVmes from "./templates/TemplateVmes"
 
-import { getLogoSrc } from "../utils/logoUtils"
-import { compressImage, fileToBase64 } from "../utils/imageUtils"
+import { getLogoSrc } from "../server/utils/logoUtils"
+import { compressImage, fileToBase64 } from "../server/utils/imageUtils"
 
 export default function TemplateSelectionModal() {
   const navigate = useNavigate()
